@@ -67,7 +67,7 @@ const AppSidebar = () => {
                 <SidebarMenuItem key={item.path}>
                   <SidebarMenuButton
                     asChild
-                    active={location.pathname === item.path}
+                    isActive={location.pathname === item.path}
                     className="transition-all duration-200"
                   >
                     <Link to={item.path} className="flex items-center gap-3 px-3 py-2">
