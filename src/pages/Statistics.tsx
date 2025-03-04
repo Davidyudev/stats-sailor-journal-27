@@ -22,7 +22,10 @@ const Statistics = () => {
     averageDuration: 3.5,
     maxDrawdown: 8.7,
     longestWinningStreak: 12,
-    longestLosingStreak: 5
+    longestLosingStreak: 5,
+    totalCommission: 234.56,
+    totalSwap: 78.32,
+    netProfit: 2934.94 // totalProfitLoss - totalCommission - totalSwap
   };
 
   const symbols: Symbol[] = [
