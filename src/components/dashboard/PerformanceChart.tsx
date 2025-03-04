@@ -4,14 +4,16 @@ import { MountTransition } from '@/components/ui/mt4-connector';
 import { cn } from '@/lib/utils';
 import { DailyPerformance } from '@/lib/types';
 import {
-  AreaChart,
-  Area,
+  ComposedChart,
+  Bar,
+  Line,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  ReferenceLine
+  ReferenceLine,
+  Legend
 } from 'recharts';
 
 interface PerformanceChartProps {
@@ -21,17 +23,35 @@ interface PerformanceChartProps {
 
 export const PerformanceChart = ({ data, className }: PerformanceChartProps) => {
   const chartData = useMemo(() => {
-    return data.map(item => ({
-      date: item.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      profit: item.profitLoss,
-      trades: item.trades,
-      winRate: item.winRate
-    }));
+    let accumulatedProfit = 0;
+    
+    return data.map(item => {
+      accumulatedProfit += item.profitLoss;
+      
+      return {
+        date: item.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        dailyProfit: item.profitLoss,
+        accumulatedProfit: accumulatedProfit,
+        trades: item.trades,
+        winRate: item.winRate
+      };
+    });
   }, [data]);
 
   const totalProfit = useMemo(() => {
     return data.reduce((sum, item) => sum + item.profitLoss, 0);
   }, [data]);
+
+  // Calculate Y-axis domains for better visualization
+  const maxDailyValue = Math.max(
+    ...chartData.map(d => Math.abs(d.dailyProfit)),
+    10 // Minimum value to prevent empty chart when all values are near zero
+  );
+  
+  const maxAccumulatedValue = Math.max(
+    ...chartData.map(d => Math.abs(d.accumulatedProfit)),
+    10 // Minimum value to prevent empty chart when all values are near zero
+  );
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
@@ -42,13 +62,19 @@ export const PerformanceChart = ({ data, className }: PerformanceChartProps) => 
             "font-mono text-xs",
             payload[0].value >= 0 ? "text-profit" : "text-loss"
           )}>
-            Profit/Loss: {payload[0].value >= 0 ? "+" : ""}{payload[0].value.toFixed(2)}
+            Daily P/L: {payload[0].value >= 0 ? "+" : ""}{payload[0].value.toFixed(2)}
+          </p>
+          <p className={cn(
+            "font-mono text-xs",
+            payload[1].value >= 0 ? "text-profit" : "text-loss"
+          )}>
+            Accumulated: {payload[1].value >= 0 ? "+" : ""}{payload[1].value.toFixed(2)}
           </p>
           <p className="font-mono text-xs text-muted-foreground">
-            Trades: {payload[1].value}
+            Trades: {payload[2].value}
           </p>
           <p className="font-mono text-xs text-muted-foreground">
-            Win Rate: {(payload[2].value * 100).toFixed(0)}%
+            Win Rate: {(payload[3].value * 100).toFixed(0)}%
           </p>
         </div>
       );
@@ -72,7 +98,7 @@ export const PerformanceChart = ({ data, className }: PerformanceChartProps) => 
         
         <div className="h-64 w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart
+            <ComposedChart
               data={chartData}
               margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
             >
@@ -90,35 +116,61 @@ export const PerformanceChart = ({ data, className }: PerformanceChartProps) => 
                 stroke="hsl(var(--chart-grid))"
               />
               <YAxis 
+                yAxisId="left"
                 tick={{ fontSize: 12 }} 
                 tickLine={false}
                 stroke="hsl(var(--chart-grid))"
-                tickFormatter={(value) => `${value}`}
+                domain={[-(maxDailyValue * 1.1), maxDailyValue * 1.1]}
+                tickFormatter={(value) => `${value.toFixed(1)}`}
+              />
+              <YAxis 
+                yAxisId="right"
+                orientation="right"
+                tick={{ fontSize: 12 }} 
+                tickLine={false}
+                stroke="hsl(var(--chart-grid))"
+                domain={[-(maxAccumulatedValue * 1.1), maxAccumulatedValue * 1.1]}
+                tickFormatter={(value) => `${value.toFixed(1)}`}
               />
               <Tooltip content={<CustomTooltip />} />
+              <Legend />
               <ReferenceLine y={0} stroke="hsl(var(--neutral))" />
-              <Area 
-                type="monotone" 
-                dataKey="profit" 
-                stroke="hsl(var(--primary))" 
-                fillOpacity={1}
-                fill="url(#colorProfit)" 
+              <Bar 
+                yAxisId="left"
+                dataKey="dailyProfit" 
+                name="Daily P/L"
+                fill={theme => {
+                  return "hsl(var(--primary))";
+                }}
+                fillOpacity={0.8}
+                barSize={20}
                 isAnimationActive={true}
                 animationDuration={1500}
               />
-              <Area 
+              <Line 
+                yAxisId="right"
+                type="monotone" 
+                dataKey="accumulatedProfit" 
+                name="Accumulated"
+                stroke="hsl(var(--secondary))"
+                strokeWidth={2}
+                dot={{ r: 2 }}
+                isAnimationActive={true}
+                animationDuration={1500}
+              />
+              <Line 
                 type="monotone" 
                 dataKey="trades" 
                 stroke="transparent"
                 fill="transparent"
               />
-              <Area 
+              <Line 
                 type="monotone" 
                 dataKey="winRate" 
                 stroke="transparent"
                 fill="transparent"
               />
-            </AreaChart>
+            </ComposedChart>
           </ResponsiveContainer>
         </div>
       </div>
