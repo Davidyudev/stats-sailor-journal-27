@@ -8,7 +8,8 @@ import {
   History,
   TrendingUp,
   LayoutDashboard,
-  ArrowRightLeft
+  ArrowRightLeft,
+  FolderOpen
 } from 'lucide-react';
 import { 
   Sidebar, 
@@ -112,12 +113,18 @@ const AppSidebar = () => {
       
       <SidebarFooter className="p-4 border-t">
         <MountTransition>
-          <div className="text-xs font-medium text-muted-foreground mb-1">
-            MT4 STATUS
-          </div>
-          <div className="flex items-center">
-            <div className="w-2 h-2 rounded-full bg-neutral mr-2 animate-pulse-subtle"></div>
-            <span className="text-sm">Not Connected</span>
+          <div className="space-y-2">
+            <div className="text-xs font-medium text-muted-foreground mb-1">
+              MT4 STATUS
+            </div>
+            <div className="flex items-center">
+              <div className="w-2 h-2 rounded-full bg-neutral mr-2 animate-pulse-subtle"></div>
+              <span className="text-sm">Not Connected</span>
+            </div>
+            <div className="flex items-center text-xs text-muted-foreground mt-1">
+              <FolderOpen size={12} className="mr-1" />
+              <span>Folder Watch: Inactive</span>
+            </div>
           </div>
         </MountTransition>
       </SidebarFooter>
