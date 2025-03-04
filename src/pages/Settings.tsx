@@ -25,7 +25,8 @@ const Settings = () => {
     password: '',
     lastSync: null,
     autoSync: true,
-    syncInterval: 30
+    syncInterval: 30,
+    filePattern: '*.csv'
   });
 
   const handleMT4ConfigChange = (key: keyof MT4Config, value: any) => {
@@ -152,12 +153,22 @@ const Settings = () => {
                       <div>Stop Loss price (optional)</div>
                       <div className="font-medium">TP</div>
                       <div>Take Profit price (optional)</div>
+                      <div className="font-medium">Commission</div>
+                      <div>Trading fee (optional)</div>
+                      <div className="font-medium">Swap</div>
+                      <div>Overnight fee (optional)</div>
                       <div className="font-medium">Profit</div>
                       <div>Profit/Loss value</div>
                     </div>
                     <div className="text-xs mt-2">
-                      <span className="font-medium">Example:</span> 123456,EURUSD,buy,2023-05-01 10:30:00,2023-05-01 14:45:00,0.1,1.1050,1.1075,1.1000,1.1100,25.00
+                      <span className="font-medium">Example:</span> 123456,EURUSD,buy,2023-05-01 10:30:00,2023-05-01 14:45:00,0.1,1.1050,1.1075,1.1000,1.1100,-2.5,-1.2,25.00
                     </div>
+                    
+                    <h4 className="font-medium text-sm mt-4 mb-1">File Naming</h4>
+                    <p className="text-xs text-muted-foreground">
+                      The app will look for files matching the pattern you specify (e.g., "trades_*.csv" or "*.csv"). 
+                      Clear naming helps organize your data exports.
+                    </p>
                   </AlertDescription>
                 </Alert>
                 
@@ -171,6 +182,20 @@ const Settings = () => {
                       onChange={(e) => handleMT4ConfigChange('serverAddress', e.target.value)}
                       disabled={!mt4Config.enabled}
                     />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="file-pattern">File Pattern</Label>
+                    <Input
+                      id="file-pattern"
+                      placeholder="e.g., *.csv or trades_*.csv"
+                      value={mt4Config.filePattern}
+                      onChange={(e) => handleMT4ConfigChange('filePattern', e.target.value)}
+                      disabled={!mt4Config.enabled}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Specify which files to monitor. Use * as a wildcard (e.g., "trades_*.csv").
+                    </p>
                   </div>
                   
                   <div className="grid gap-4 grid-cols-1 md:grid-cols-2">

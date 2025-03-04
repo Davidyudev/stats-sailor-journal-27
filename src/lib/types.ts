@@ -13,6 +13,8 @@ export interface Trade {
   status: 'open' | 'closed';
   takeProfit?: number;
   stopLoss?: number;
+  commission?: number;
+  swap?: number;
   notes?: string;
   tags?: string[];
 }
@@ -49,6 +51,9 @@ export interface Statistics {
   maxDrawdown: number;
   longestWinningStreak: number;
   longestLosingStreak: number;
+  totalCommission: number;
+  totalSwap: number;
+  netProfit: number;
 }
 
 export interface MT4Config {
@@ -59,4 +64,5 @@ export interface MT4Config {
   lastSync: Date | null;
   autoSync: boolean;
   syncInterval: number; // in minutes
+  filePattern?: string; // Pattern for files to watch
 }

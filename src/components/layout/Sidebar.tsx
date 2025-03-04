@@ -123,7 +123,7 @@ const AppSidebar = () => {
             </div>
             <div className="flex items-center text-xs text-muted-foreground mt-1">
               <FolderOpen size={12} className="mr-1" />
-              <span>Folder Watch: Inactive</span>
+              <span>File Watch: Inactive</span>
             </div>
           </div>
         </MountTransition>
