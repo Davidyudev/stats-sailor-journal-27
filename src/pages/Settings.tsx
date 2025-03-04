@@ -11,6 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { MountTransition } from '@/components/ui/mt4-connector';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Info } from 'lucide-react';
 
 const Settings = () => {
   const { toast } = useToast();
@@ -34,7 +36,7 @@ const Settings = () => {
     // Here would be the logic to save the MT4 configuration
     toast({
       title: "Settings saved",
-      description: "Your MT4 connection settings have been updated.",
+      description: "Your automatic update settings have been updated.",
     });
   };
 
@@ -86,12 +88,12 @@ const Settings = () => {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold mb-2">Settings</h1>
-        <p className="text-muted-foreground">Configure your application and MetaTrader 4 connection.</p>
+        <p className="text-muted-foreground">Configure your application and automatic data updates.</p>
       </div>
 
       <Tabs defaultValue="mt4" className="w-full">
         <TabsList className="mb-4">
-          <TabsTrigger value="mt4">MT4 Connection</TabsTrigger>
+          <TabsTrigger value="mt4">Automatic Update</TabsTrigger>
           <TabsTrigger value="appearance">Appearance</TabsTrigger>
           <TabsTrigger value="account">Account</TabsTrigger>
         </TabsList>
@@ -100,17 +102,17 @@ const Settings = () => {
           <MountTransition delay={100} className="fade-up">
             <Card>
               <CardHeader>
-                <CardTitle>MetaTrader 4 Connection</CardTitle>
+                <CardTitle>Automatic Trading Data Updates</CardTitle>
                 <CardDescription>
-                  Connect to your MT4 account to automatically import trading data
+                  Configure how trading data is automatically imported into your journal
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <Label htmlFor="mt4-enabled">Enable MT4 Connection</Label>
+                    <Label htmlFor="mt4-enabled">Enable Automatic Updates</Label>
                     <p className="text-sm text-muted-foreground">
-                      Turn on to automatically sync your trading data from MT4
+                      Turn on to automatically sync your trading data from exports
                     </p>
                   </div>
                   <Switch
@@ -122,12 +124,49 @@ const Settings = () => {
                 
                 <Separator />
                 
+                <Alert className="bg-muted/50">
+                  <Info className="h-4 w-4" />
+                  <AlertDescription>
+                    <h4 className="font-medium text-sm mb-1">Required CSV Format</h4>
+                    <p className="text-xs text-muted-foreground mb-2">
+                      Your CSV files must have the following columns to be properly imported:
+                    </p>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+                      <div className="font-medium">Ticket</div>
+                      <div>Unique trade ID</div>
+                      <div className="font-medium">Symbol</div>
+                      <div>Trading instrument (e.g., EURUSD)</div>
+                      <div className="font-medium">Type</div>
+                      <div>Buy or Sell</div>
+                      <div className="font-medium">Open Time</div>
+                      <div>Format: YYYY-MM-DD HH:MM:SS</div>
+                      <div className="font-medium">Close Time</div>
+                      <div>Format: YYYY-MM-DD HH:MM:SS</div>
+                      <div className="font-medium">Volume</div>
+                      <div>Trade size in lots</div>
+                      <div className="font-medium">Open Price</div>
+                      <div>Entry price</div>
+                      <div className="font-medium">Close Price</div>
+                      <div>Exit price</div>
+                      <div className="font-medium">SL</div>
+                      <div>Stop Loss price (optional)</div>
+                      <div className="font-medium">TP</div>
+                      <div>Take Profit price (optional)</div>
+                      <div className="font-medium">Profit</div>
+                      <div>Profit/Loss value</div>
+                    </div>
+                    <div className="text-xs mt-2">
+                      <span className="font-medium">Example:</span> 123456,EURUSD,buy,2023-05-01 10:30:00,2023-05-01 14:45:00,0.1,1.1050,1.1075,1.1000,1.1100,25.00
+                    </div>
+                  </AlertDescription>
+                </Alert>
+                
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="server-address">MT4 Server Address</Label>
+                    <Label htmlFor="server-address">Export File Location</Label>
                     <Input
                       id="server-address"
-                      placeholder="e.g., demo.server.com:443"
+                      placeholder="e.g., C:\MT4\MQL4\Files\Exports"
                       value={mt4Config.serverAddress}
                       onChange={(e) => handleMT4ConfigChange('serverAddress', e.target.value)}
                       disabled={!mt4Config.enabled}
@@ -136,21 +175,21 @@ const Settings = () => {
                   
                   <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
                     <div className="space-y-2">
-                      <Label htmlFor="account-number">Account Number</Label>
+                      <Label htmlFor="account-number">Account Name</Label>
                       <Input
                         id="account-number"
-                        placeholder="Your MT4 account number"
+                        placeholder="Your trading account name"
                         value={mt4Config.accountNumber}
                         onChange={(e) => handleMT4ConfigChange('accountNumber', e.target.value)}
                         disabled={!mt4Config.enabled}
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="password">Password</Label>
+                      <Label htmlFor="password">Export Password (if any)</Label>
                       <Input
                         id="password"
                         type="password"
-                        placeholder="Your MT4 password"
+                        placeholder="Password if your exports are encrypted"
                         value={mt4Config.password}
                         onChange={(e) => handleMT4ConfigChange('password', e.target.value)}
                         disabled={!mt4Config.enabled}
@@ -162,7 +201,7 @@ const Settings = () => {
                     <div className="space-y-0.5">
                       <Label htmlFor="auto-sync">Auto Synchronization</Label>
                       <p className="text-sm text-muted-foreground">
-                        Automatically sync trades at regular intervals
+                        Automatically check for new files at regular intervals
                       </p>
                     </div>
                     <Switch
@@ -174,7 +213,7 @@ const Settings = () => {
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="sync-interval">Sync Interval (minutes)</Label>
+                    <Label htmlFor="sync-interval">Check Interval (minutes)</Label>
                     <Select
                       disabled={!mt4Config.enabled || !mt4Config.autoSync}
                       value={mt4Config.syncInterval.toString()}

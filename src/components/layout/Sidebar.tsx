@@ -115,7 +115,7 @@ const AppSidebar = () => {
         <MountTransition>
           <div className="space-y-2">
             <div className="text-xs font-medium text-muted-foreground mb-1">
-              MT4 STATUS
+              UPDATE STATUS
             </div>
             <div className="flex items-center">
               <div className="w-2 h-2 rounded-full bg-neutral mr-2 animate-pulse-subtle"></div>
