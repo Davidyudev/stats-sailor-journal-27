@@ -1,41 +1,14 @@
-
 import { BarChart2, PieChart, TrendingUp } from 'lucide-react';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { Symbol, Statistics as StatsType } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { mockDataService } from '@/lib/services/mockDataService';
 
 const Statistics = () => {
-  // Mock data for statistics page
-  const overallStats: StatsType = {
-    totalTrades: 156,
-    winningTrades: 102,
-    losingTrades: 54,
-    winRate: 65.38,
-    totalProfitLoss: 3247.82,
-    averageProfitLoss: 20.82,
-    bestTrade: 412.50,
-    worstTrade: -156.75,
-    profitFactor: 2.14,
-    sharpeRatio: 1.87,
-    expectancy: 0.67,
-    averageDuration: 3.5,
-    maxDrawdown: 8.7,
-    longestWinningStreak: 12,
-    longestLosingStreak: 5,
-    totalCommission: 234.56,
-    totalSwap: 78.32,
-    netProfit: 2934.94 // totalProfitLoss - totalCommission - totalSwap
-  };
-
-  const symbols: Symbol[] = [
-    { name: 'EURUSD', tradesCount: 42, winRate: 71.4, totalPL: 1245.76, averagePips: 12.3 },
-    { name: 'USDJPY', tradesCount: 31, winRate: 64.5, totalPL: 876.21, averagePips: 9.7 },
-    { name: 'GBPUSD', tradesCount: 28, winRate: 60.7, totalPL: 652.43, averagePips: 8.4 },
-    { name: 'AUDUSD', tradesCount: 25, winRate: 68.0, totalPL: 721.55, averagePips: 11.1 },
-    { name: 'XAUUSD', tradesCount: 18, winRate: 55.6, totalPL: -148.32, averagePips: -2.7 },
-    { name: 'USDCAD', tradesCount: 12, winRate: 66.7, totalPL: 324.78, averagePips: 10.5 }
-  ];
+  // Get consistent statistics from our mock data service
+  const overallStats: StatsType = mockDataService.getStatistics();
+  const symbols: Symbol[] = mockDataService.getSymbols();
 
   return (
     <div className="space-y-6">

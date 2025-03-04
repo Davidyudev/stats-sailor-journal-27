@@ -1,86 +1,10 @@
-
 import { useState, useEffect } from 'react';
 import { Activity, TrendingUp, Wallet, BarChart } from 'lucide-react';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { RecentTrades } from '@/components/dashboard/RecentTrades';
 import { PerformanceChart } from '@/components/dashboard/PerformanceChart';
 import { Trade, DailyPerformance } from '@/lib/types';
-
-// Sample data for the dashboard
-const generateSampleTrades = (): Trade[] => {
-  const symbols = ['EURUSD', 'GBPUSD', 'USDJPY', 'AUDUSD', 'USDCAD', 'BTCUSD'];
-  const trades: Trade[] = [];
-  
-  // Generate data for the last 30 days
-  for (let i = 0; i < 30; i++) {
-    const openDate = new Date();
-    openDate.setDate(openDate.getDate() - (30 - i));
-    openDate.setHours(Math.floor(Math.random() * 24), Math.floor(Math.random() * 60));
-    
-    const closeDate = new Date(openDate);
-    closeDate.setHours(closeDate.getHours() + Math.floor(Math.random() * 8) + 1);
-    
-    const type = Math.random() > 0.5 ? 'buy' : 'sell';
-    const symbol = symbols[Math.floor(Math.random() * symbols.length)];
-    
-    const openPrice = parseFloat((Math.random() * 100 + 100).toFixed(5));
-    const pips = parseFloat((Math.random() * 40 - 20).toFixed(1));
-    const lots = parseFloat((Math.random() * 2).toFixed(2));
-    
-    let closePrice;
-    if (type === 'buy') {
-      closePrice = openPrice + pips * 0.0001;
-    } else {
-      closePrice = openPrice - pips * 0.0001;
-    }
-    
-    const profitLoss = parseFloat((pips * 10 * lots).toFixed(2));
-    
-    trades.push({
-      id: `trade-${i}`,
-      symbol,
-      type,
-      openDate,
-      closeDate,
-      openPrice,
-      closePrice,
-      profitLoss,
-      pips,
-      lots,
-      status: 'closed',
-    });
-  }
-  
-  return trades;
-};
-
-const generateDailyPerformance = (trades: Trade[]): DailyPerformance[] => {
-  const dailyPerformance: Record<string, DailyPerformance> = {};
-  
-  trades.forEach(trade => {
-    const date = trade.closeDate.toISOString().split('T')[0];
-    
-    if (!dailyPerformance[date]) {
-      dailyPerformance[date] = {
-        date: new Date(date),
-        profitLoss: 0,
-        trades: 0,
-        winRate: 0,
-      };
-    }
-    
-    dailyPerformance[date].profitLoss += trade.profitLoss;
-    dailyPerformance[date].trades += 1;
-    
-    const wins = trades
-      .filter(t => t.closeDate.toISOString().split('T')[0] === date && t.profitLoss > 0)
-      .length;
-      
-    dailyPerformance[date].winRate = wins / dailyPerformance[date].trades;
-  });
-  
-  return Object.values(dailyPerformance).sort((a, b) => a.date.getTime() - b.date.getTime());
-};
+import { mockDataService } from '@/lib/services/mockDataService';
 
 const Index = () => {
   const [trades, setTrades] = useState<Trade[]>([]);
@@ -90,10 +14,8 @@ const Index = () => {
   useEffect(() => {
     // Simulate loading data
     setTimeout(() => {
-      const sampleTrades = generateSampleTrades();
-      const performanceData = generateDailyPerformance(sampleTrades);
-      setTrades(sampleTrades);
-      setPerformance(performanceData);
+      setTrades(mockDataService.getTrades());
+      setPerformance(mockDataService.getDailyPerformance());
       setIsLoading(false);
     }, 1000);
   }, []);
@@ -179,37 +101,45 @@ const Index = () => {
             <div className="pt-2">
               <div className="text-xs text-muted-foreground mb-1">Top Performing</div>
               <div className="space-y-2">
-                {['EURUSD', 'GBPUSD', 'BTCUSD'].map(symbol => (
-                  <div key={symbol} className="flex justify-between items-center">
-                    <div className="flex items-center">
-                      <div className="w-2 h-2 rounded-full bg-primary mr-2"></div>
-                      <span>{symbol}</span>
+                {mockDataService.getSymbols()
+                  .filter(symbol => symbol.totalPL > 0)
+                  .sort((a, b) => b.totalPL - a.totalPL)
+                  .slice(0, 3)
+                  .map(symbol => (
+                    <div key={symbol.name} className="flex justify-between items-center">
+                      <div className="flex items-center">
+                        <div className="w-2 h-2 rounded-full bg-primary mr-2"></div>
+                        <span>{symbol.name}</span>
+                      </div>
+                      <span className="text-profit text-sm">+{symbol.totalPL.toFixed(2)}</span>
                     </div>
-                    <span className="text-profit text-sm">+{(Math.random() * 100).toFixed(2)}</span>
-                  </div>
-                ))}
+                  ))}
               </div>
             </div>
             
             <div className="pt-2">
               <div className="text-xs text-muted-foreground mb-1">Worst Performing</div>
               <div className="space-y-2">
-                {['USDJPY', 'USDCAD'].map(symbol => (
-                  <div key={symbol} className="flex justify-between items-center">
-                    <div className="flex items-center">
-                      <div className="w-2 h-2 rounded-full bg-loss mr-2"></div>
-                      <span>{symbol}</span>
+                {mockDataService.getSymbols()
+                  .filter(symbol => symbol.totalPL < 0)
+                  .sort((a, b) => a.totalPL - b.totalPL)
+                  .slice(0, 3)
+                  .map(symbol => (
+                    <div key={symbol.name} className="flex justify-between items-center">
+                      <div className="flex items-center">
+                        <div className="w-2 h-2 rounded-full bg-loss mr-2"></div>
+                        <span>{symbol.name}</span>
+                      </div>
+                      <span className="text-loss text-sm">{symbol.totalPL.toFixed(2)}</span>
                     </div>
-                    <span className="text-loss text-sm">-{(Math.random() * 50).toFixed(2)}</span>
-                  </div>
-                ))}
+                  ))}
               </div>
             </div>
           </div>
         </div>
       </div>
       
-      <RecentTrades trades={trades.slice(0, 10)} />
+      <RecentTrades trades={mockDataService.getRecentTrades(10)} />
     </div>
   );
 };
