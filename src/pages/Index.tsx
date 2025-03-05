@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Activity, TrendingUp, Wallet, BarChart } from 'lucide-react';
 import { StatCard } from '@/components/dashboard/StatCard';
@@ -11,10 +12,13 @@ import { Trade, DailyPerformance } from '@/lib/types';
 import { mockDataService } from '@/lib/services/mockDataService';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
+type TimePeriod = 'all' | '1m' | '3m' | '6m' | '1y';
+
 const Index = () => {
   const [trades, setTrades] = useState<Trade[]>([]);
   const [performance, setPerformance] = useState<DailyPerformance[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedTimePeriod, setSelectedTimePeriod] = useState<TimePeriod>('all');
   
   const holidays = [
     {
@@ -35,12 +39,96 @@ const Index = () => {
     }, 1000);
   }, []);
 
-  const totalProfitLoss = trades.reduce((sum, trade) => sum + trade.profitLoss, 0);
-  const winningTrades = trades.filter(trade => trade.profitLoss > 0);
-  const winRate = trades.length > 0 ? (winningTrades.length / trades.length) * 100 : 0;
-  const avgPips = trades.length > 0 
-    ? trades.reduce((sum, trade) => sum + trade.pips, 0) / trades.length 
+  // Filter trades based on selected time period
+  const filteredTrades = (() => {
+    if (selectedTimePeriod === 'all') return trades;
+    
+    const now = new Date();
+    let monthsToSubtract = 0;
+    
+    switch(selectedTimePeriod) {
+      case '1m': monthsToSubtract = 1; break;
+      case '3m': monthsToSubtract = 3; break;
+      case '6m': monthsToSubtract = 6; break;
+      case '1y': monthsToSubtract = 12; break;
+    }
+    
+    const cutoffDate = new Date();
+    cutoffDate.setMonth(now.getMonth() - monthsToSubtract);
+    
+    return trades.filter(trade => trade.closeDate >= cutoffDate);
+  })();
+
+  // Calculate statistics based on filtered trades
+  const totalProfitLoss = filteredTrades.reduce((sum, trade) => sum + trade.profitLoss, 0);
+  const winningTrades = filteredTrades.filter(trade => trade.profitLoss > 0);
+  const winRate = filteredTrades.length > 0 ? (winningTrades.length / filteredTrades.length) * 100 : 0;
+  const avgPips = filteredTrades.length > 0 
+    ? filteredTrades.reduce((sum, trade) => sum + trade.pips, 0) / filteredTrades.length 
     : 0;
+
+  // Filter symbols based on time period
+  const filteredSymbols = (() => {
+    if (selectedTimePeriod === 'all') return mockDataService.getSymbols();
+    
+    // Create a map of symbols with reset performance data
+    const symbolMap = new Map();
+    mockDataService.getSymbols().forEach(symbol => {
+      symbolMap.set(symbol.name, {
+        ...symbol,
+        tradesCount: 0,
+        winRate: 0,
+        totalPL: 0,
+        averagePips: 0
+      });
+    });
+    
+    // Update the symbols with data from filtered trades
+    filteredTrades.forEach(trade => {
+      const symbol = symbolMap.get(trade.symbol);
+      if (symbol) {
+        symbol.tradesCount += 1;
+        symbol.totalPL += trade.profitLoss;
+      }
+    });
+    
+    // Calculate win rates for filtered data
+    symbolMap.forEach(symbol => {
+      if (symbol.tradesCount > 0) {
+        const symbolTrades = filteredTrades.filter(t => t.symbol === symbol.name);
+        const winningTrades = symbolTrades.filter(t => t.profitLoss > 0);
+        symbol.winRate = symbolTrades.length > 0 
+          ? parseFloat(((winningTrades.length / symbolTrades.length) * 100).toFixed(1))
+          : 0;
+        symbol.averagePips = symbolTrades.length > 0
+          ? parseFloat((symbolTrades.reduce((sum, t) => sum + t.pips, 0) / symbolTrades.length).toFixed(1))
+          : 0;
+      }
+    });
+    
+    return Array.from(symbolMap.values())
+      .filter(symbol => symbol.tradesCount > 0);
+  })();
+
+  // Filter performance data based on time period
+  const filteredPerformance = (() => {
+    if (selectedTimePeriod === 'all') return performance;
+    
+    const now = new Date();
+    let monthsToSubtract = 0;
+    
+    switch(selectedTimePeriod) {
+      case '1m': monthsToSubtract = 1; break;
+      case '3m': monthsToSubtract = 3; break;
+      case '6m': monthsToSubtract = 6; break;
+      case '1y': monthsToSubtract = 12; break;
+    }
+    
+    const cutoffDate = new Date();
+    cutoffDate.setMonth(now.getMonth() - monthsToSubtract);
+    
+    return performance.filter(item => item.date >= cutoffDate);
+  })();
 
   return (
     <div className="space-y-6">
@@ -78,7 +166,7 @@ const Index = () => {
         <StatCard
           icon={<BarChart size={24} />}
           title="Total Trades"
-          value={trades.length}
+          value={filteredTrades.length}
           change={{
             value: "5",
             positive: true
@@ -108,7 +196,7 @@ const Index = () => {
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Win/Loss Ratio</span>
                     <span className="font-medium">
-                      {winningTrades.length} / {trades.length - winningTrades.length}
+                      {winningTrades.length} / {filteredTrades.length - winningTrades.length}
                     </span>
                   </div>
                   <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
@@ -122,7 +210,7 @@ const Index = () => {
                 <div className="pt-2">
                   <div className="text-xs text-muted-foreground mb-1">Top Performing</div>
                   <div className="space-y-2">
-                    {mockDataService.getSymbols()
+                    {filteredSymbols
                       .filter(symbol => symbol.totalPL > 0)
                       .sort((a, b) => b.totalPL - a.totalPL)
                       .slice(0, 3)
@@ -141,7 +229,7 @@ const Index = () => {
                 <div className="pt-2">
                   <div className="text-xs text-muted-foreground mb-1">Worst Performing</div>
                   <div className="space-y-2">
-                    {mockDataService.getSymbols()
+                    {filteredSymbols
                       .filter(symbol => symbol.totalPL < 0)
                       .sort((a, b) => a.totalPL - b.totalPL)
                       .slice(0, 3)
@@ -161,15 +249,15 @@ const Index = () => {
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <AssetPerformanceChart data={mockDataService.getSymbols()} />
-            <MonthlyPerformanceChart data={performance} />
-            <DurationPerformanceChart trades={trades} />
+            <AssetPerformanceChart data={filteredSymbols} />
+            <MonthlyPerformanceChart data={filteredPerformance} />
+            <DurationPerformanceChart trades={filteredTrades} />
           </div>
         </TabsContent>
         
         <TabsContent value="calendar">
           <PerformanceCalendar 
-            data={performance}
+            data={filteredPerformance}
             holidays={holidays}
           />
         </TabsContent>

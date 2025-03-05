@@ -1,12 +1,25 @@
-
 import { useState, useEffect } from 'react';
-import { Search, Filter, Download, ArrowUpDown, Plus } from 'lucide-react';
+import { Search, Filter, Download, ArrowUpDown, Plus, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { MountTransition } from '@/components/ui/mt4-connector';
 import { Trade } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuCheckboxItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
-// Generate sample data (same as in Dashboard)
 const generateSampleTrades = (): Trade[] => {
   const symbols = ['EURUSD', 'GBPUSD', 'USDJPY', 'AUDUSD', 'USDCAD', 'BTCUSD'];
   const trades: Trade[] = [];
@@ -35,7 +48,6 @@ const generateSampleTrades = (): Trade[] => {
     
     const profitLoss = parseFloat((pips * 10 * lots).toFixed(2));
     
-    // Sometimes add notes and tags
     const notes = Math.random() > 0.7 ? 'Trade taken based on support/resistance level' : 
                 Math.random() > 0.5 ? 'Following the trend after breakout' : undefined;
     
@@ -66,6 +78,16 @@ const generateSampleTrades = (): Trade[] => {
   return trades;
 };
 
+type TimePeriod = 'all' | '1m' | '3m' | '6m' | '1y';
+type FilterOptions = {
+  timePeriod: TimePeriod;
+  symbols: string[];
+  tradeType: ('buy' | 'sell' | 'all')[];
+  profitOnly: boolean;
+  lossOnly: boolean;
+  withNotes: boolean;
+};
+
 const Journal = () => {
   const [trades, setTrades] = useState<Trade[]>([]);
   const [filteredTrades, setFilteredTrades] = useState<Trade[]>([]);
@@ -79,31 +101,79 @@ const Journal = () => {
     key: 'closeDate',
     direction: 'desc',
   });
+  
+  const [availableSymbols, setAvailableSymbols] = useState<string[]>([]);
+  const [filters, setFilters] = useState<FilterOptions>({
+    timePeriod: 'all',
+    symbols: [],
+    tradeType: ['buy', 'sell'],
+    profitOnly: false,
+    lossOnly: false,
+    withNotes: false
+  });
 
   useEffect(() => {
-    // Simulate loading data
     setTimeout(() => {
       const sampleTrades = generateSampleTrades();
       setTrades(sampleTrades);
-      setFilteredTrades(sampleTrades);
+      
+      const symbols = Array.from(new Set(sampleTrades.map(trade => trade.symbol)));
+      setAvailableSymbols(symbols);
+      setFilters(prev => ({ ...prev, symbols }));
+      
       setIsLoading(false);
     }, 1000);
   }, []);
 
   useEffect(() => {
-    // Filter trades based on search query
+    let result = [...trades];
+    
+    if (filters.timePeriod !== 'all') {
+      const now = new Date();
+      let monthsToSubtract = 0;
+      
+      switch(filters.timePeriod) {
+        case '1m': monthsToSubtract = 1; break;
+        case '3m': monthsToSubtract = 3; break;
+        case '6m': monthsToSubtract = 6; break;
+        case '1y': monthsToSubtract = 12; break;
+      }
+      
+      const cutoffDate = new Date();
+      cutoffDate.setMonth(now.getMonth() - monthsToSubtract);
+      
+      result = result.filter(trade => trade.closeDate >= cutoffDate);
+    }
+    
+    if (filters.symbols.length > 0 && filters.symbols.length < availableSymbols.length) {
+      result = result.filter(trade => filters.symbols.includes(trade.symbol));
+    }
+    
+    if (!filters.tradeType.includes('all') && filters.tradeType.length < 2) {
+      result = result.filter(trade => filters.tradeType.includes(trade.type));
+    }
+    
+    if (filters.profitOnly && !filters.lossOnly) {
+      result = result.filter(trade => trade.profitLoss > 0);
+    } else if (filters.lossOnly && !filters.profitOnly) {
+      result = result.filter(trade => trade.profitLoss < 0);
+    }
+    
+    if (filters.withNotes) {
+      result = result.filter(trade => !!trade.notes);
+    }
+    
     if (searchQuery) {
-      const filtered = trades.filter(trade => 
+      result = result.filter(trade => 
         trade.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
         trade.type.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (trade.notes && trade.notes.toLowerCase().includes(searchQuery.toLowerCase())) ||
         (trade.tags && trade.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase())))
       );
-      setFilteredTrades(filtered);
-    } else {
-      setFilteredTrades(trades);
     }
-  }, [searchQuery, trades]);
+    
+    setFilteredTrades(result);
+  }, [searchQuery, trades, filters, availableSymbols]);
 
   const handleSort = (key: keyof Trade) => {
     setSortConfig(prev => ({
@@ -142,6 +212,48 @@ const Journal = () => {
   const handleTradeClick = (trade: Trade) => {
     setSelectedTrade(trade);
   };
+  
+  const toggleSymbolFilter = (symbol: string) => {
+    setFilters(prev => {
+      const currentSymbols = [...prev.symbols];
+      if (currentSymbols.includes(symbol)) {
+        return { ...prev, symbols: currentSymbols.filter(s => s !== symbol) };
+      } else {
+        return { ...prev, symbols: [...currentSymbols, symbol] };
+      }
+    });
+  };
+  
+  const toggleAllSymbols = () => {
+    setFilters(prev => {
+      if (prev.symbols.length === availableSymbols.length) {
+        return { ...prev, symbols: [] };
+      } else {
+        return { ...prev, symbols: [...availableSymbols] };
+      }
+    });
+  };
+  
+  const toggleTradeTypeFilter = (type: 'buy' | 'sell' | 'all') => {
+    setFilters(prev => {
+      if (type === 'all') {
+        if (prev.tradeType.includes('all')) {
+          return { ...prev, tradeType: [] };
+        } else {
+          return { ...prev, tradeType: ['all', 'buy', 'sell'] };
+        }
+      } else {
+        const currentTypes = prev.tradeType.filter(t => t !== 'all');
+        if (currentTypes.includes(type)) {
+          const newTypes = currentTypes.filter(t => t !== type);
+          return { ...prev, tradeType: newTypes.length ? newTypes : [] };
+        } else {
+          const newTypes = [...currentTypes, type];
+          return { ...prev, tradeType: newTypes.length === 2 ? [...newTypes, 'all'] : newTypes };
+        }
+      }
+    });
+  };
 
   return (
     <div className="space-y-6">
@@ -160,10 +272,95 @@ const Journal = () => {
             />
           </div>
           
-          <Button variant="outline" size="sm" className="h-9">
-            <Filter size={16} className="mr-2" />
-            Filters
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="h-9">
+                <Filter size={16} className="mr-2" />
+                Filters
+                <ChevronDown size={16} className="ml-2" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel>Time Period</DropdownMenuLabel>
+              <Select value={filters.timePeriod} onValueChange={(value) => setFilters(prev => ({ ...prev, timePeriod: value as TimePeriod }))}>
+                <SelectTrigger className="w-full h-8 mt-1">
+                  <SelectValue placeholder="Select time period" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Time</SelectItem>
+                  <SelectItem value="1m">Last Month</SelectItem>
+                  <SelectItem value="3m">Last 3 Months</SelectItem>
+                  <SelectItem value="6m">Last 6 Months</SelectItem>
+                  <SelectItem value="1y">Last Year</SelectItem>
+                </SelectContent>
+              </Select>
+              
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel>Symbols</DropdownMenuLabel>
+              <div className="max-h-32 overflow-y-auto">
+                <DropdownMenuCheckboxItem
+                  checked={filters.symbols.length === availableSymbols.length}
+                  onCheckedChange={toggleAllSymbols}
+                >
+                  All Symbols
+                </DropdownMenuCheckboxItem>
+                {availableSymbols.map(symbol => (
+                  <DropdownMenuCheckboxItem
+                    key={symbol}
+                    checked={filters.symbols.includes(symbol)}
+                    onCheckedChange={() => toggleSymbolFilter(symbol)}
+                  >
+                    {symbol}
+                  </DropdownMenuCheckboxItem>
+                ))}
+              </div>
+              
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel>Trade Type</DropdownMenuLabel>
+              <DropdownMenuCheckboxItem
+                checked={filters.tradeType.includes('all')}
+                onCheckedChange={() => toggleTradeTypeFilter('all')}
+              >
+                All Types
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={filters.tradeType.includes('buy')}
+                onCheckedChange={() => toggleTradeTypeFilter('buy')}
+              >
+                Buy
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={filters.tradeType.includes('sell')}
+                onCheckedChange={() => toggleTradeTypeFilter('sell')}
+              >
+                Sell
+              </DropdownMenuCheckboxItem>
+              
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel>Results</DropdownMenuLabel>
+              <DropdownMenuCheckboxItem
+                checked={filters.profitOnly}
+                onCheckedChange={() => setFilters(prev => ({ ...prev, profitOnly: !prev.profitOnly, lossOnly: prev.lossOnly && !prev.profitOnly ? false : prev.lossOnly }))}
+              >
+                Profitable Only
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={filters.lossOnly}
+                onCheckedChange={() => setFilters(prev => ({ ...prev, lossOnly: !prev.lossOnly, profitOnly: prev.profitOnly && !prev.lossOnly ? false : prev.profitOnly }))}
+              >
+                Losing Only
+              </DropdownMenuCheckboxItem>
+              
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel>Other</DropdownMenuLabel>
+              <DropdownMenuCheckboxItem
+                checked={filters.withNotes}
+                onCheckedChange={() => setFilters(prev => ({ ...prev, withNotes: !prev.withNotes }))}
+              >
+                With Notes
+              </DropdownMenuCheckboxItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           
           <Button variant="outline" size="sm" className="h-9">
             <Download size={16} className="mr-2" />
@@ -252,44 +449,52 @@ const Journal = () => {
                 </tr>
               </thead>
               <tbody className="bg-transparent divide-y divide-border">
-                {sortedTrades.map(trade => (
-                  <tr 
-                    key={trade.id} 
-                    onClick={() => handleTradeClick(trade)}
-                    className={cn(
-                      "hover:bg-muted/50 transition-colors cursor-pointer",
-                      selectedTrade?.id === trade.id ? "bg-primary/10" : ""
-                    )}
-                  >
-                    <td className="px-4 py-3 text-sm font-medium">{trade.symbol}</td>
-                    <td className="px-4 py-3 text-sm">
-                      <span className={cn(
-                        "px-2 py-1 rounded-md text-xs font-medium",
-                        trade.type === 'buy' ? "bg-profit/10 text-profit" : "bg-loss/10 text-loss"
+                {sortedTrades.length > 0 ? (
+                  sortedTrades.map(trade => (
+                    <tr 
+                      key={trade.id} 
+                      onClick={() => handleTradeClick(trade)}
+                      className={cn(
+                        "hover:bg-muted/50 transition-colors cursor-pointer",
+                        selectedTrade?.id === trade.id ? "bg-primary/10" : ""
+                      )}
+                    >
+                      <td className="px-4 py-3 text-sm font-medium">{trade.symbol}</td>
+                      <td className="px-4 py-3 text-sm">
+                        <span className={cn(
+                          "px-2 py-1 rounded-md text-xs font-medium",
+                          trade.type === 'buy' ? "bg-profit/10 text-profit" : "bg-loss/10 text-loss"
+                        )}>
+                          {trade.type.toUpperCase()}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-muted-foreground">
+                        {trade.openDate.toLocaleString()}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-muted-foreground">
+                        {trade.closeDate.toLocaleString()}
+                      </td>
+                      <td className={cn(
+                        "px-4 py-3 text-sm font-medium",
+                        trade.profitLoss > 0 ? "text-profit" : trade.profitLoss < 0 ? "text-loss" : ""
                       )}>
-                        {trade.type.toUpperCase()}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-muted-foreground">
-                      {trade.openDate.toLocaleString()}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-muted-foreground">
-                      {trade.closeDate.toLocaleString()}
-                    </td>
-                    <td className={cn(
-                      "px-4 py-3 text-sm font-medium",
-                      trade.profitLoss > 0 ? "text-profit" : trade.profitLoss < 0 ? "text-loss" : ""
-                    )}>
-                      {trade.profitLoss > 0 ? "+" : ""}{trade.profitLoss.toFixed(2)}
-                    </td>
-                    <td className={cn(
-                      "px-4 py-3 text-sm font-medium",
-                      trade.pips > 0 ? "text-profit" : trade.pips < 0 ? "text-loss" : ""
-                    )}>
-                      {trade.pips > 0 ? "+" : ""}{trade.pips.toFixed(1)}
+                        {trade.profitLoss > 0 ? "+" : ""}{trade.profitLoss.toFixed(2)}
+                      </td>
+                      <td className={cn(
+                        "px-4 py-3 text-sm font-medium",
+                        trade.pips > 0 ? "text-profit" : trade.pips < 0 ? "text-loss" : ""
+                      )}>
+                        {trade.pips > 0 ? "+" : ""}{trade.pips.toFixed(1)}
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
+                      No trades found
                     </td>
                   </tr>
-                ))}
+                )}
               </tbody>
             </table>
           </div>

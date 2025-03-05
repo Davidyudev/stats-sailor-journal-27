@@ -15,16 +15,46 @@ import {
   ReferenceLine,
   Legend
 } from 'recharts';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface PerformanceChartProps {
   data: DailyPerformance[];
   className?: string;
 }
 
+type TimePeriod = 'all' | '1m' | '3m' | '6m' | '1y';
+
 export const PerformanceChart = ({ data, className }: PerformanceChartProps) => {
+  const [timePeriod, setTimePeriod] = useState<TimePeriod>('all');
+  
+  const filteredData = useMemo(() => {
+    if (timePeriod === 'all') return data;
+    
+    const now = new Date();
+    let monthsToSubtract = 0;
+    
+    switch(timePeriod) {
+      case '1m': monthsToSubtract = 1; break;
+      case '3m': monthsToSubtract = 3; break;
+      case '6m': monthsToSubtract = 6; break;
+      case '1y': monthsToSubtract = 12; break;
+    }
+    
+    const cutoffDate = new Date();
+    cutoffDate.setMonth(now.getMonth() - monthsToSubtract);
+    
+    return data.filter(item => item.date >= cutoffDate);
+  }, [data, timePeriod]);
+
   const chartData = useMemo(() => {
     let accumulated = 0;
-    return data.map(item => {
+    return filteredData.map(item => {
       accumulated += item.profitLoss;
       return {
         date: item.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
@@ -34,11 +64,11 @@ export const PerformanceChart = ({ data, className }: PerformanceChartProps) => 
         winRate: item.winRate
       };
     });
-  }, [data]);
+  }, [filteredData]);
 
   const totalProfit = useMemo(() => {
-    return data.reduce((sum, item) => sum + item.profitLoss, 0);
-  }, [data]);
+    return filteredData.reduce((sum, item) => sum + item.profitLoss, 0);
+  }, [filteredData]);
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (!active || !payload || !payload.length) {
@@ -81,11 +111,25 @@ export const PerformanceChart = ({ data, className }: PerformanceChartProps) => 
       <div className="p-4">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2">
           <h3 className="text-lg font-medium">Performance</h3>
-          <div className={cn(
-            "text-sm font-medium",
-            totalProfit >= 0 ? "text-profit" : "text-loss"
-          )}>
-            Total: {totalProfit >= 0 ? "+" : ""}{totalProfit.toFixed(2)}
+          <div className="flex items-center gap-3">
+            <Select value={timePeriod} onValueChange={(value) => setTimePeriod(value as TimePeriod)}>
+              <SelectTrigger className="w-[120px] h-8 text-xs">
+                <SelectValue placeholder="Time Period" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Overall</SelectItem>
+                <SelectItem value="1m">1 Month</SelectItem>
+                <SelectItem value="3m">3 Months</SelectItem>
+                <SelectItem value="6m">6 Months</SelectItem>
+                <SelectItem value="1y">1 Year</SelectItem>
+              </SelectContent>
+            </Select>
+            <div className={cn(
+              "text-sm font-medium",
+              totalProfit >= 0 ? "text-profit" : "text-loss"
+            )}>
+              Total: {totalProfit >= 0 ? "+" : ""}{totalProfit.toFixed(2)}
+            </div>
           </div>
         </div>
         
@@ -159,7 +203,7 @@ export const PerformanceChart = ({ data, className }: PerformanceChartProps) => 
                 dataKey="accumulatedProfit" 
                 stroke="#0EA5E9" 
                 strokeWidth={3}
-                dot={{ fill: '#0EA5E9', r: 4 }}
+                dot={false}
                 activeDot={{ r: 6, strokeWidth: 2 }}
                 name="Accumulated P/L"
               />

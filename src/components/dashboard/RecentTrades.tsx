@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ChevronDown, ChevronUp, Search } from 'lucide-react';
 import { MountTransition } from '@/components/ui/mt4-connector';
 import { cn } from '@/lib/utils';
@@ -20,6 +20,7 @@ export const RecentTrades = ({ trades, className }: RecentTradesProps) => {
   });
   
   const [searchQuery, setSearchQuery] = useState('');
+  const [filteredTrades, setFilteredTrades] = useState<Trade[]>(trades);
 
   const handleSort = (key: keyof Trade) => {
     setSortConfig(prev => ({
@@ -28,10 +29,20 @@ export const RecentTrades = ({ trades, className }: RecentTradesProps) => {
     }));
   };
 
-  const filteredTrades = trades.filter(trade => 
-    trade.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    trade.type.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Update filtered trades when search query or trades change
+  useEffect(() => {
+    if (searchQuery.trim() === '') {
+      setFilteredTrades(trades);
+    } else {
+      const filtered = trades.filter(trade => 
+        trade.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        trade.type.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (trade.notes && trade.notes.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (trade.tags && trade.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase())))
+      );
+      setFilteredTrades(filtered);
+    }
+  }, [searchQuery, trades]);
 
   const sortedTrades = [...filteredTrades].sort((a, b) => {
     if (sortConfig.key === 'openDate' || sortConfig.key === 'closeDate') {
