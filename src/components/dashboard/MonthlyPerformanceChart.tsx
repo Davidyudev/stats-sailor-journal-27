@@ -57,27 +57,29 @@ export const MonthlyPerformanceChart = ({ data, className }: MonthlyPerformanceC
   }, [data]);
   
   const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="glass-card rounded-md p-3 shadow-sm border border-border/50 text-sm">
-          <p className="font-medium mb-1">{payload[0].payload.month}</p>
-          <p className={cn(
-            "font-mono text-xs",
-            payload[0].value >= 0 ? "text-profit" : "text-loss"
-          )}>
-            Profit/Loss: {payload[0].value >= 0 ? "+" : ""}{payload[0].value.toFixed(2)}
-          </p>
-          <p className="font-mono text-xs text-muted-foreground">
-            Trades: {payload[0].payload.trades}
-          </p>
-          <p className="font-mono text-xs text-muted-foreground">
-            Win Rate: {payload[0].payload.winRate.toFixed(1)}%
-          </p>
-        </div>
-      );
+    if (!active || !payload || !payload.length) {
+      return null;
     }
-  
-    return null;
+    
+    const data = payload[0].payload;
+    
+    return (
+      <div className="glass-card rounded-md p-3 shadow-sm border border-border/50 text-sm">
+        <p className="font-medium mb-1">{data.month}</p>
+        <p className={cn(
+          "font-mono text-xs",
+          data.profit >= 0 ? "text-profit" : "text-loss"
+        )}>
+          Profit/Loss: {data.profit >= 0 ? "+" : ""}{data.profit.toFixed(2)}
+        </p>
+        <p className="font-mono text-xs text-muted-foreground">
+          Trades: {data.trades}
+        </p>
+        <p className="font-mono text-xs text-muted-foreground">
+          Win Rate: {data.winRate.toFixed(1)}%
+        </p>
+      </div>
+    );
   };
 
   return (

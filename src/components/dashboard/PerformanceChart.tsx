@@ -41,33 +41,39 @@ export const PerformanceChart = ({ data, className }: PerformanceChartProps) => 
   }, [data]);
 
   const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="glass-card rounded-md p-3 shadow-sm border border-border/50 text-sm">
-          <p className="font-medium mb-1">{label}</p>
-          <p className={cn(
-            "font-mono text-xs",
-            payload[0].value >= 0 ? "text-profit" : "text-loss"
-          )}>
-            Daily P/L: {payload[0].value >= 0 ? "+" : ""}{payload[0].value.toFixed(2)}
-          </p>
-          <p className={cn(
-            "font-mono text-xs",
-            payload[1].value >= 0 ? "text-profit" : "text-loss"
-          )}>
-            Accumulated: {payload[1].value >= 0 ? "+" : ""}{payload[1].value.toFixed(2)}
-          </p>
-          <p className="font-mono text-xs text-muted-foreground">
-            Trades: {payload[2].value}
-          </p>
-          <p className="font-mono text-xs text-muted-foreground">
-            Win Rate: {(payload[3].value * 100).toFixed(0)}%
-          </p>
-        </div>
-      );
+    if (!active || !payload || !payload.length) {
+      return null;
     }
-  
-    return null;
+    
+    // Safely access payload values with null checks
+    const dailyPL = payload[0]?.value !== undefined ? payload[0].value : 0;
+    const accumulated = payload[1]?.value !== undefined ? payload[1].value : 0;
+    const trades = payload[2]?.value !== undefined ? payload[2].value : 0;
+    const winRate = payload[3]?.value !== undefined ? payload[3].value : 0;
+    
+    return (
+      <div className="glass-card rounded-md p-3 shadow-sm border border-border/50 text-sm">
+        <p className="font-medium mb-1">{label}</p>
+        <p className={cn(
+          "font-mono text-xs",
+          dailyPL >= 0 ? "text-profit" : "text-loss"
+        )}>
+          Daily P/L: {dailyPL >= 0 ? "+" : ""}{dailyPL.toFixed(2)}
+        </p>
+        <p className={cn(
+          "font-mono text-xs",
+          accumulated >= 0 ? "text-profit" : "text-loss"
+        )}>
+          Accumulated: {accumulated >= 0 ? "+" : ""}{accumulated.toFixed(2)}
+        </p>
+        <p className="font-mono text-xs text-muted-foreground">
+          Trades: {trades}
+        </p>
+        <p className="font-mono text-xs text-muted-foreground">
+          Win Rate: {(winRate * 100).toFixed(0)}%
+        </p>
+      </div>
+    );
   };
 
   return (

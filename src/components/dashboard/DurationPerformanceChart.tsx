@@ -53,22 +53,24 @@ export const DurationPerformanceChart = ({ trades, className }: DurationPerforma
   const COLORS = ['hsl(var(--primary))', 'hsl(var(--secondary))', 'hsl(var(--accent))', 'hsl(var(--warning))'];
   
   const CustomTooltip = ({ active, payload }: any) => {
-    if (active && payload && payload.length) {
-      const data = payload[0].payload;
-      return (
-        <div className="glass-card rounded-md p-3 shadow-sm border border-border/50 text-sm">
-          <p className="font-medium mb-1">{data.name}</p>
-          <p className="font-mono text-xs">Trades: {data.value} ({data.percentage}%)</p>
-          <p className={cn(
-            "font-mono text-xs",
-            data.pnl >= 0 ? "text-profit" : "text-loss"
-          )}>
-            P/L: {data.pnl >= 0 ? "+" : ""}{data.pnl.toFixed(2)}
-          </p>
-        </div>
-      );
+    if (!active || !payload || !payload.length) {
+      return null;
     }
-    return null;
+    
+    const data = payload[0].payload;
+    
+    return (
+      <div className="glass-card rounded-md p-3 shadow-sm border border-border/50 text-sm">
+        <p className="font-medium mb-1">{data.name}</p>
+        <p className="font-mono text-xs">Trades: {data.value} ({data.percentage}%)</p>
+        <p className={cn(
+          "font-mono text-xs",
+          data.pnl >= 0 ? "text-profit" : "text-loss"
+        )}>
+          P/L: {data.pnl >= 0 ? "+" : ""}{data.pnl.toFixed(2)}
+        </p>
+      </div>
+    );
   };
 
   return (
