@@ -57,7 +57,8 @@ class MockDataService {
       
       const openPrice = 100 + (i % 100);
       const pips = seedValues[seedIndex].pipsMod + (i % 5);
-      const lots = ((i % 10) / 10 + seedValues[seedIndex].lotsMod).toFixed(2);
+      // Fix: Convert lots to number explicitly
+      const lots = parseFloat(((i % 10) / 10 + seedValues[seedIndex].lotsMod).toFixed(2));
       
       let closePrice;
       if (type === 'buy') {
@@ -68,7 +69,7 @@ class MockDataService {
       
       const commission = parseFloat((lots * 0.7).toFixed(2));
       const swap = parseFloat(((i % 3) * 0.5).toFixed(2));
-      const profitLoss = parseFloat((pips * 10 * parseFloat(lots)).toFixed(2));
+      const profitLoss = parseFloat((pips * 10 * lots).toFixed(2));
       
       trades.push({
         id: `trade-${i}`,
@@ -80,7 +81,7 @@ class MockDataService {
         closePrice,
         profitLoss,
         pips,
-        lots: parseFloat(lots),
+        lots,
         status: 'closed',
         commission,
         swap
