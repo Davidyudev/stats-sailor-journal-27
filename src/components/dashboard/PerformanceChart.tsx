@@ -139,9 +139,7 @@ export const PerformanceChart = ({ data, className }: PerformanceChartProps) => 
                 yAxisId="left"
                 dataKey="dailyProfit" 
                 name="Daily P/L"
-                fill={theme => {
-                  return "hsl(var(--primary))";
-                }}
+                fill="hsl(var(--primary))"
                 fillOpacity={0.8}
                 barSize={20}
                 isAnimationActive={true}
