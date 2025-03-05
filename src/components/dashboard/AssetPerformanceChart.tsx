@@ -71,28 +71,29 @@ export const AssetPerformanceChart = ({ data, className }: AssetPerformanceChart
             <BarChart
               data={chartData}
               margin={{ top: 5, right: 30, left: 20, bottom: 30 }}
+              layout="vertical"
             >
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--chart-grid))" />
               <XAxis 
-                dataKey="name"
+                type="number"
                 tick={{ fontSize: 12 }} 
                 tickLine={false}
                 stroke="hsl(var(--chart-grid))"
-                angle={-45}
-                textAnchor="end"
-                height={60}
               />
               <YAxis 
+                dataKey="name"
+                type="category"
                 tick={{ fontSize: 12 }} 
                 tickLine={false}
                 stroke="hsl(var(--chart-grid))"
+                width={60}
               />
               <Tooltip content={<CustomTooltip />} />
               <Legend />
               <Bar 
                 dataKey="pnl" 
                 name="Profit/Loss"
-                radius={[4, 4, 0, 0]}
+                radius={[0, 4, 4, 0]}
               >
                 {chartData.map((entry, index) => (
                   <Cell 

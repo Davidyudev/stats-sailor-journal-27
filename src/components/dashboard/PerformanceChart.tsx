@@ -1,5 +1,5 @@
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { MountTransition } from '@/components/ui/mt4-connector';
 import { cn } from '@/lib/utils';
 import { DailyPerformance } from '@/lib/types';
@@ -98,28 +98,48 @@ export const PerformanceChart = ({ data, className }: PerformanceChartProps) => 
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--chart-grid))" />
               <XAxis 
                 dataKey="date" 
-                tick={{ fontSize: 12 }} 
+                tick={{ fontSize: 12, fill: "hsl(var(--foreground))" }} 
                 tickLine={false}
                 stroke="hsl(var(--chart-grid))"
               />
               <YAxis 
                 yAxisId="left"
-                tick={{ fontSize: 12 }} 
+                tick={{ fontSize: 12, fill: "hsl(var(--foreground))" }} 
                 tickLine={false}
                 stroke="hsl(var(--chart-grid))"
                 tickFormatter={(value) => `${value}`}
                 domain={['auto', 'auto']}
-                label={{ value: 'Daily P/L', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fill: 'hsl(var(--muted-foreground))' }, offset: 0 }}
+                label={{ 
+                  value: 'Daily P/L', 
+                  angle: -90, 
+                  position: 'insideLeft', 
+                  style: { 
+                    textAnchor: 'middle', 
+                    fill: 'hsl(var(--foreground))',
+                    fontWeight: 500
+                  }, 
+                  offset: 0 
+                }}
               />
               <YAxis 
                 yAxisId="right"
                 orientation="right"
-                tick={{ fontSize: 12 }} 
+                tick={{ fontSize: 12, fill: "#0EA5E9" }} 
                 tickLine={false}
-                stroke="hsl(var(--muted-foreground))"
+                stroke="#0EA5E9"
                 tickFormatter={(value) => `${value}`}
                 domain={['auto', 'auto']}
-                label={{ value: 'Accumulated', angle: 90, position: 'insideRight', style: { textAnchor: 'middle', fill: 'hsl(var(--muted-foreground))' }, offset: 0 }}
+                label={{ 
+                  value: 'Accumulated', 
+                  angle: 90, 
+                  position: 'insideRight', 
+                  style: { 
+                    textAnchor: 'middle', 
+                    fill: '#0EA5E9',
+                    fontWeight: 500
+                  }, 
+                  offset: 0 
+                }}
               />
               <Tooltip content={<CustomTooltip />} />
               <Legend />
@@ -137,10 +157,11 @@ export const PerformanceChart = ({ data, className }: PerformanceChartProps) => 
                 yAxisId="right"
                 type="monotone" 
                 dataKey="accumulatedProfit" 
-                stroke="hsl(var(--warning))" 
-                dot={false}
+                stroke="#0EA5E9" 
+                strokeWidth={3}
+                dot={{ fill: '#0EA5E9', r: 4 }}
+                activeDot={{ r: 6, strokeWidth: 2 }}
                 name="Accumulated P/L"
-                strokeWidth={2}
               />
             </ComposedChart>
           </ResponsiveContainer>
