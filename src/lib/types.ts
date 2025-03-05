@@ -66,3 +66,20 @@ export interface MT4Config {
   syncInterval: number; // in minutes
   filePattern?: string; // Pattern for files to watch
 }
+
+export interface EconomicEvent {
+  date: Date;
+  name: string;
+  impact: 'low' | 'medium' | 'high';
+  actual?: string;
+  forecast?: string;
+  previous?: string;
+  currency: string;
+}
+
+export interface Holiday {
+  date: Date;
+  name: string;
+  markets?: string[]; // Which markets are closed
+  type?: 'bank' | 'public' | 'trading'; // Type of holiday
+}

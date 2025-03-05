@@ -4,14 +4,16 @@ import { MountTransition } from '@/components/ui/mt4-connector';
 import { cn } from '@/lib/utils';
 import { DailyPerformance } from '@/lib/types';
 import {
-  AreaChart,
-  Area,
+  ComposedChart,
+  Bar,
+  Line,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  ReferenceLine
+  ReferenceLine,
+  Legend
 } from 'recharts';
 
 interface PerformanceChartProps {
@@ -21,12 +23,17 @@ interface PerformanceChartProps {
 
 export const PerformanceChart = ({ data, className }: PerformanceChartProps) => {
   const chartData = useMemo(() => {
-    return data.map(item => ({
-      date: item.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      profit: item.profitLoss,
-      trades: item.trades,
-      winRate: item.winRate
-    }));
+    let accumulated = 0;
+    return data.map(item => {
+      accumulated += item.profitLoss;
+      return {
+        date: item.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        profit: item.profitLoss,
+        accumulatedProfit: accumulated,
+        trades: item.trades,
+        winRate: item.winRate
+      };
+    });
   }, [data]);
 
   const totalProfit = useMemo(() => {
@@ -42,13 +49,19 @@ export const PerformanceChart = ({ data, className }: PerformanceChartProps) => 
             "font-mono text-xs",
             payload[0].value >= 0 ? "text-profit" : "text-loss"
           )}>
-            Profit/Loss: {payload[0].value >= 0 ? "+" : ""}{payload[0].value.toFixed(2)}
+            Daily P/L: {payload[0].value >= 0 ? "+" : ""}{payload[0].value.toFixed(2)}
+          </p>
+          <p className={cn(
+            "font-mono text-xs",
+            payload[1].value >= 0 ? "text-profit" : "text-loss"
+          )}>
+            Accumulated: {payload[1].value >= 0 ? "+" : ""}{payload[1].value.toFixed(2)}
           </p>
           <p className="font-mono text-xs text-muted-foreground">
-            Trades: {payload[1].value}
+            Trades: {payload[2].value}
           </p>
           <p className="font-mono text-xs text-muted-foreground">
-            Win Rate: {(payload[2].value * 100).toFixed(0)}%
+            Win Rate: {(payload[3].value * 100).toFixed(0)}%
           </p>
         </div>
       );
@@ -72,16 +85,10 @@ export const PerformanceChart = ({ data, className }: PerformanceChartProps) => 
         
         <div className="h-64 w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart
+            <ComposedChart
               data={chartData}
-              margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
+              margin={{ top: 20, right: 30, left: 5, bottom: 5 }}
             >
-              <defs>
-                <linearGradient id="colorProfit" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
-                </linearGradient>
-              </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--chart-grid))" />
               <XAxis 
                 dataKey="date" 
@@ -90,35 +97,46 @@ export const PerformanceChart = ({ data, className }: PerformanceChartProps) => 
                 stroke="hsl(var(--chart-grid))"
               />
               <YAxis 
+                yAxisId="left"
                 tick={{ fontSize: 12 }} 
                 tickLine={false}
                 stroke="hsl(var(--chart-grid))"
                 tickFormatter={(value) => `${value}`}
+                domain={['auto', 'auto']}
+                label={{ value: 'Daily P/L', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fill: 'hsl(var(--muted-foreground))' }, offset: 0 }}
+              />
+              <YAxis 
+                yAxisId="right"
+                orientation="right"
+                tick={{ fontSize: 12 }} 
+                tickLine={false}
+                stroke="hsl(var(--muted-foreground))"
+                tickFormatter={(value) => `${value}`}
+                domain={['auto', 'auto']}
+                label={{ value: 'Accumulated', angle: 90, position: 'insideRight', style: { textAnchor: 'middle', fill: 'hsl(var(--muted-foreground))' }, offset: 0 }}
               />
               <Tooltip content={<CustomTooltip />} />
-              <ReferenceLine y={0} stroke="hsl(var(--neutral))" />
-              <Area 
-                type="monotone" 
+              <Legend />
+              <ReferenceLine y={0} yAxisId="left" stroke="hsl(var(--neutral))" />
+              <Bar 
+                yAxisId="left"
                 dataKey="profit" 
-                stroke="hsl(var(--primary))" 
-                fillOpacity={1}
-                fill="url(#colorProfit)" 
+                fill="hsl(var(--primary))"
+                radius={[4, 4, 0, 0]}
+                name="Daily P/L"
                 isAnimationActive={true}
                 animationDuration={1500}
               />
-              <Area 
+              <Line 
+                yAxisId="right"
                 type="monotone" 
-                dataKey="trades" 
-                stroke="transparent"
-                fill="transparent"
+                dataKey="accumulatedProfit" 
+                stroke="hsl(var(--warning))" 
+                dot={false}
+                name="Accumulated P/L"
+                strokeWidth={2}
               />
-              <Area 
-                type="monotone" 
-                dataKey="winRate" 
-                stroke="transparent"
-                fill="transparent"
-              />
-            </AreaChart>
+            </ComposedChart>
           </ResponsiveContainer>
         </div>
       </div>
