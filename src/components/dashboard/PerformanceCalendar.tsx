@@ -1,20 +1,16 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MountTransition } from '@/components/ui/mt4-connector';
 import { cn } from '@/lib/utils';
 import { DailyPerformance } from '@/lib/types';
-import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addMonths, subMonths, addDays, isSameMonth, isSameDay } from 'date-fns';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addMonths, subMonths, addDays, isSameMonth, isSameDay, getMonth, getYear } from 'date-fns';
+import { ChevronLeft, ChevronRight, AlertTriangle, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { forexFactoryService, ForexEvent } from '@/lib/services/forexFactoryService';
 
 interface PerformanceCalendarProps {
   data: DailyPerformance[];
   className?: string;
-  economicEvents?: {
-    date: Date;
-    name: string;
-    impact: 'low' | 'medium' | 'high';
-  }[];
   holidays?: {
     date: Date;
     name: string;
@@ -24,11 +20,31 @@ interface PerformanceCalendarProps {
 export const PerformanceCalendar = ({ 
   data, 
   className,
-  economicEvents = [],
   holidays = []
 }: PerformanceCalendarProps) => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [economicEvents, setEconomicEvents] = useState<ForexEvent[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchEconomicEvents = async () => {
+      setIsLoading(true);
+      try {
+        const events = await forexFactoryService.getEvents(
+          getYear(currentMonth),
+          getMonth(currentMonth)
+        );
+        setEconomicEvents(events);
+      } catch (error) {
+        console.error('Failed to fetch economic events:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchEconomicEvents();
+  }, [currentMonth]);
 
   const prevMonth = () => {
     setCurrentMonth(subMonths(currentMonth, 1));
@@ -53,8 +69,9 @@ export const PerformanceCalendar = ({
         >
           <ChevronLeft className="h-5 w-5" />
         </Button>
-        <h2 className="text-lg font-medium">
+        <h2 className="text-lg font-medium flex items-center gap-2">
           {format(currentMonth, 'MMMM yyyy')}
+          {isLoading && <span className="text-xs text-muted-foreground">(Loading events...)</span>}
         </h2>
         <Button 
           variant="ghost" 
@@ -104,7 +121,7 @@ export const PerformanceCalendar = ({
       if (!acc[dateStr]) acc[dateStr] = [];
       acc[dateStr].push(event);
       return acc;
-    }, {} as Record<string, typeof economicEvents>);
+    }, {} as Record<string, ForexEvent[]>);
 
     // Create holidays lookup
     const holidaysLookup = holidays.reduce((acc, holiday) => {
@@ -142,11 +159,11 @@ export const PerformanceCalendar = ({
               </span>
               
               {hasHighImpactEvent && (
-                <span className="inline-block w-2 h-2 rounded-full bg-destructive" />
+                <AlertTriangle className="h-3 w-3 text-destructive" />
               )}
               
               {holiday && (
-                <span className="inline-block w-2 h-2 rounded-full bg-secondary" />
+                <Info className="h-3 w-3 text-secondary" />
               )}
             </div>
             
@@ -167,20 +184,33 @@ export const PerformanceCalendar = ({
             
             {dayEvents.length > 0 && (
               <div className="mt-1">
-                {dayEvents.map((event, idx) => (
-                  <div 
-                    key={idx} 
-                    className="text-[10px] truncate" 
-                    title={event.name}
-                  >
-                    <span className={cn(
-                      "inline-block w-1 h-1 rounded-full mr-1",
-                      event.impact === 'high' ? "bg-destructive" : 
-                      event.impact === 'medium' ? "bg-warning" : "bg-muted-foreground"
-                    )} />
-                    {event.name.substring(0, 12)}...
+                {dayEvents
+                  .sort((a, b) => {
+                    // Sort by impact first (high -> medium -> low)
+                    const impactOrder = { high: 0, medium: 1, low: 2 };
+                    return impactOrder[a.impact] - impactOrder[b.impact];
+                  })
+                  .slice(0, 2) // Only show the top 2 events to avoid cluttering
+                  .map((event, idx) => (
+                    <div 
+                      key={idx} 
+                      className="text-[10px] truncate flex items-center gap-1" 
+                      title={`${event.currency} ${event.name} at ${event.time}`}
+                    >
+                      <span className={cn(
+                        "inline-block w-1 h-1 rounded-full",
+                        event.impact === 'high' ? "bg-destructive" : 
+                        event.impact === 'medium' ? "bg-warning" : "bg-muted-foreground"
+                      )} />
+                      <span className="font-medium">{event.currency}</span>
+                      {event.name.substring(event.currency.length + 1).substring(0, 10)}...
+                    </div>
+                  ))}
+                {dayEvents.length > 2 && (
+                  <div className="text-[10px] text-muted-foreground">
+                    +{dayEvents.length - 2} more events
                   </div>
-                ))}
+                )}
               </div>
             )}
             
@@ -222,13 +252,21 @@ export const PerformanceCalendar = ({
         {renderDays()}
         {renderCells()}
         
-        <div className="flex gap-2 mt-4 text-xs">
+        <div className="flex flex-wrap gap-4 mt-4 text-xs">
           <div className="flex items-center gap-1">
-            <span className="inline-block w-2 h-2 rounded-full bg-destructive"></span>
+            <AlertTriangle className="h-3 w-3 text-destructive" />
             <span>High Impact News</span>
           </div>
           <div className="flex items-center gap-1">
-            <span className="inline-block w-2 h-2 rounded-full bg-secondary"></span>
+            <span className="inline-block w-2 h-2 rounded-full bg-warning"></span>
+            <span>Medium Impact</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="inline-block w-2 h-2 rounded-full bg-muted-foreground"></span>
+            <span>Low Impact</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <Info className="h-3 w-3 text-secondary" />
             <span>Holiday</span>
           </div>
         </div>

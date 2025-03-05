@@ -37,7 +37,8 @@ export const AssetPerformanceChart = ({ data, className }: AssetPerformanceChart
       return null;
     }
     
-    const data = payload[0].payload;
+    const data = payload[0]?.payload;
+    if (!data) return null;
     
     return (
       <div className="glass-card rounded-md p-3 shadow-sm border border-border/50 text-sm">
@@ -68,31 +69,30 @@ export const AssetPerformanceChart = ({ data, className }: AssetPerformanceChart
         <div className="h-64 w-full">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
-              layout="vertical"
               data={chartData}
-              margin={{ top: 5, right: 30, left: 40, bottom: 5 }}
+              margin={{ top: 5, right: 30, left: 20, bottom: 30 }}
             >
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--chart-grid))" />
               <XAxis 
-                type="number"
+                dataKey="name"
                 tick={{ fontSize: 12 }} 
                 tickLine={false}
                 stroke="hsl(var(--chart-grid))"
+                angle={-45}
+                textAnchor="end"
+                height={60}
               />
               <YAxis 
-                dataKey="name"
-                type="category"
                 tick={{ fontSize: 12 }} 
                 tickLine={false}
                 stroke="hsl(var(--chart-grid))"
-                width={60}
               />
               <Tooltip content={<CustomTooltip />} />
               <Legend />
               <Bar 
                 dataKey="pnl" 
                 name="Profit/Loss"
-                radius={[0, 4, 4, 0]}
+                radius={[4, 4, 0, 0]}
               >
                 {chartData.map((entry, index) => (
                   <Cell 

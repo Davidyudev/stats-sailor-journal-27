@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Activity, TrendingUp, Wallet, BarChart } from 'lucide-react';
 import { StatCard } from '@/components/dashboard/StatCard';
@@ -17,26 +16,6 @@ const Index = () => {
   const [performance, setPerformance] = useState<DailyPerformance[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
-  // Mock economic events for the calendar
-  const economicEvents = [
-    {
-      date: new Date(2023, 10, 1), // November 1, 2023
-      name: 'Fed Interest Rate Decision',
-      impact: 'high' as const
-    },
-    {
-      date: new Date(2023, 10, 3), // November 3, 2023
-      name: 'Non-Farm Payrolls',
-      impact: 'high' as const
-    },
-    {
-      date: new Date(2023, 10, 10), // November 10, 2023
-      name: 'CPI Data Release',
-      impact: 'high' as const
-    }
-  ];
-  
-  // Mock bank holidays for the calendar
   const holidays = [
     {
       date: new Date(2023, 10, 23), // November 23, 2023
@@ -49,7 +28,6 @@ const Index = () => {
   ];
 
   useEffect(() => {
-    // Simulate loading data
     setTimeout(() => {
       setTrades(mockDataService.getTrades());
       setPerformance(mockDataService.getDailyPerformance());
@@ -57,7 +35,6 @@ const Index = () => {
     }, 1000);
   }, []);
 
-  // Calculate statistics
   const totalProfitLoss = trades.reduce((sum, trade) => sum + trade.profitLoss, 0);
   const winningTrades = trades.filter(trade => trade.profitLoss > 0);
   const winRate = trades.length > 0 ? (winningTrades.length / trades.length) * 100 : 0;
@@ -192,8 +169,7 @@ const Index = () => {
         
         <TabsContent value="calendar">
           <PerformanceCalendar 
-            data={performance} 
-            economicEvents={economicEvents}
+            data={performance}
             holidays={holidays}
           />
         </TabsContent>

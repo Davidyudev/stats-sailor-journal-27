@@ -46,10 +46,10 @@ export const PerformanceChart = ({ data, className }: PerformanceChartProps) => 
     }
     
     // Safely access payload values with null checks
-    const dailyPL = payload[0]?.value !== undefined ? payload[0].value : 0;
-    const accumulated = payload[1]?.value !== undefined ? payload[1].value : 0;
-    const trades = payload[2]?.value !== undefined ? payload[2].value : 0;
-    const winRate = payload[3]?.value !== undefined ? payload[3].value : 0;
+    const dailyPL = payload.find(p => p.dataKey === 'profit')?.value ?? 0;
+    const accumulated = payload.find(p => p.dataKey === 'accumulatedProfit')?.value ?? 0;
+    const trades = payload.find(p => p.dataKey === 'trades')?.value ?? 0;
+    const winRate = payload.find(p => p.dataKey === 'winRate')?.value ?? 0;
     
     return (
       <div className="glass-card rounded-md p-3 shadow-sm border border-border/50 text-sm">
@@ -58,19 +58,19 @@ export const PerformanceChart = ({ data, className }: PerformanceChartProps) => 
           "font-mono text-xs",
           dailyPL >= 0 ? "text-profit" : "text-loss"
         )}>
-          Daily P/L: {dailyPL >= 0 ? "+" : ""}{dailyPL.toFixed(2)}
+          Daily P/L: {dailyPL >= 0 ? "+" : ""}{Number(dailyPL).toFixed(2)}
         </p>
         <p className={cn(
           "font-mono text-xs",
           accumulated >= 0 ? "text-profit" : "text-loss"
         )}>
-          Accumulated: {accumulated >= 0 ? "+" : ""}{accumulated.toFixed(2)}
+          Accumulated: {accumulated >= 0 ? "+" : ""}{Number(accumulated).toFixed(2)}
         </p>
         <p className="font-mono text-xs text-muted-foreground">
           Trades: {trades}
         </p>
         <p className="font-mono text-xs text-muted-foreground">
-          Win Rate: {(winRate * 100).toFixed(0)}%
+          Win Rate: {winRate ? (winRate * 100).toFixed(0) : 0}%
         </p>
       </div>
     );
