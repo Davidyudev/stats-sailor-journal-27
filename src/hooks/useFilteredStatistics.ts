@@ -84,6 +84,51 @@ export const useFilteredStatistics = () => {
       const totalCommission = filteredTrades.reduce((sum, trade) => sum + (trade.commission || 0), 0);
       const totalSwap = filteredTrades.reduce((sum, trade) => sum + (trade.swap || 0), 0);
       
+      // Calculate average duration in days based on actual trade duration
+      const totalDurationInMs = filteredTrades.reduce((sum, trade) => {
+        const duration = trade.closeDate.getTime() - trade.openDate.getTime();
+        return sum + duration;
+      }, 0);
+      const averageDurationInDays = (totalDurationInMs / filteredTrades.length) / (1000 * 60 * 60 * 24);
+      
+      // Calculate max drawdown based on cumulative equity curve
+      let maxDrawdown = 0;
+      let peak = 0;
+      let cumulativePL = 0;
+      
+      // Sort trades by close date to create a time-based equity curve
+      const sortedTrades = [...filteredTrades].sort((a, b) => 
+        a.closeDate.getTime() - b.closeDate.getTime()
+      );
+      
+      for (const trade of sortedTrades) {
+        cumulativePL += trade.profitLoss;
+        if (cumulativePL > peak) {
+          peak = cumulativePL;
+        } else if (peak > 0) {
+          const drawdown = ((peak - cumulativePL) / peak) * 100;
+          maxDrawdown = Math.max(maxDrawdown, drawdown);
+        }
+      }
+      
+      // Calculate winning and losing streaks
+      let currentWinStreak = 0;
+      let maxWinStreak = 0;
+      let currentLoseStreak = 0;
+      let maxLoseStreak = 0;
+      
+      for (const trade of sortedTrades) {
+        if (trade.profitLoss > 0) {
+          currentWinStreak++;
+          currentLoseStreak = 0;
+          maxWinStreak = Math.max(maxWinStreak, currentWinStreak);
+        } else if (trade.profitLoss < 0) {
+          currentLoseStreak++;
+          currentWinStreak = 0;
+          maxLoseStreak = Math.max(maxLoseStreak, currentLoseStreak);
+        }
+      }
+      
       const stats: Statistics = {
         totalTrades: filteredTrades.length,
         winningTrades: winningTrades.length,
@@ -93,14 +138,15 @@ export const useFilteredStatistics = () => {
         averageProfitLoss: totalPL / filteredTrades.length,
         bestTrade: Math.max(...filteredTrades.map(trade => trade.profitLoss)),
         worstTrade: Math.min(...filteredTrades.map(trade => trade.profitLoss)),
-        maxDrawdown: Math.round(Math.random() * 20),
-        averageDuration: Math.round(Math.random() * 5) + 1,
+        maxDrawdown: Math.round(maxDrawdown * 10) / 10, // Round to 1 decimal place
+        averageDuration: Math.round(averageDurationInDays * 10) / 10, // Round to 1 decimal place
         profitFactor: winningTrades.reduce((sum, trade) => sum + trade.profitLoss, 0) / 
                      (Math.abs(losingTrades.reduce((sum, trade) => sum + trade.profitLoss, 0)) || 1),
-        sharpeRatio: 1.2,
-        expectancy: 0.5,
-        longestWinningStreak: 3,
-        longestLosingStreak: 2,
+        sharpeRatio: 1.2, // This could be calculated more accurately with daily returns
+        expectancy: (winningTrades.reduce((sum, t) => sum + t.profitLoss, 0) / winningTrades.length) * (winningTrades.length / filteredTrades.length) -
+                   (Math.abs(losingTrades.reduce((sum, t) => sum + t.profitLoss, 0)) / losingTrades.length) * (losingTrades.length / filteredTrades.length),
+        longestWinningStreak: maxWinStreak,
+        longestLosingStreak: maxLoseStreak,
         totalCommission: totalCommission,
         totalSwap: totalSwap,
         netProfit: totalPL - totalCommission - totalSwap
