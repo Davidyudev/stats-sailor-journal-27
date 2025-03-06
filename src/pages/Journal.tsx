@@ -1,9 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Search, Filter, Download, ArrowUpDown, Plus, ChevronDown } from 'lucide-react';
+import { DateRange } from 'react-day-picker';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { MountTransition } from '@/components/ui/mt4-connector';
 import { Trade } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import { DateRangePicker } from '@/components/ui/date-range-picker';
+import { TagFilter } from '@/components/ui/tag-filter';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -78,14 +82,16 @@ const generateSampleTrades = (): Trade[] => {
   return trades;
 };
 
-type TimePeriod = 'all' | '1m' | '3m' | '6m' | '1y';
+type TimePeriod = 'all' | '1m' | '3m' | '6m' | '1y' | 'custom';
 type FilterOptions = {
   timePeriod: TimePeriod;
+  dateRange?: DateRange;
   symbols: string[];
   tradeType: ('buy' | 'sell' | 'all')[];
   profitOnly: boolean;
   lossOnly: boolean;
   withNotes: boolean;
+  tags: string[];
 };
 
 const Journal = () => {
@@ -103,13 +109,15 @@ const Journal = () => {
   });
   
   const [availableSymbols, setAvailableSymbols] = useState<string[]>([]);
+  const [availableTags, setAvailableTags] = useState<string[]>([]);
   const [filters, setFilters] = useState<FilterOptions>({
     timePeriod: 'all',
     symbols: [],
     tradeType: ['buy', 'sell'],
     profitOnly: false,
     lossOnly: false,
-    withNotes: false
+    withNotes: false,
+    tags: []
   });
 
   useEffect(() => {
@@ -121,6 +129,12 @@ const Journal = () => {
       setAvailableSymbols(symbols);
       setFilters(prev => ({ ...prev, symbols }));
       
+      const allTags = sampleTrades
+        .filter(trade => trade.tags && trade.tags.length > 0)
+        .flatMap(trade => trade.tags || []);
+      const uniqueTags = Array.from(new Set(allTags));
+      setAvailableTags(uniqueTags);
+      
       setIsLoading(false);
     }, 1000);
   }, []);
@@ -128,7 +142,7 @@ const Journal = () => {
   useEffect(() => {
     let result = [...trades];
     
-    if (filters.timePeriod !== 'all') {
+    if (filters.timePeriod !== 'all' && filters.timePeriod !== 'custom') {
       const now = new Date();
       let monthsToSubtract = 0;
       
@@ -143,6 +157,20 @@ const Journal = () => {
       cutoffDate.setMonth(now.getMonth() - monthsToSubtract);
       
       result = result.filter(trade => trade.closeDate >= cutoffDate);
+    } 
+    else if (filters.timePeriod === 'custom' && filters.dateRange) {
+      const { from, to } = filters.dateRange;
+      
+      if (from && to) {
+        const endDate = new Date(to);
+        endDate.setHours(23, 59, 59, 999);
+        
+        result = result.filter(trade => 
+          trade.closeDate >= from && trade.closeDate <= endDate
+        );
+      } else if (from) {
+        result = result.filter(trade => trade.closeDate >= from);
+      }
     }
     
     if (filters.symbols.length > 0 && filters.symbols.length < availableSymbols.length) {
@@ -163,6 +191,12 @@ const Journal = () => {
       result = result.filter(trade => !!trade.notes);
     }
     
+    if (filters.tags.length > 0) {
+      result = result.filter(trade => 
+        trade.tags && trade.tags.some(tag => filters.tags.includes(tag))
+      );
+    }
+    
     if (searchQuery) {
       result = result.filter(trade => 
         trade.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -173,13 +207,33 @@ const Journal = () => {
     }
     
     setFilteredTrades(result);
-  }, [searchQuery, trades, filters, availableSymbols]);
+  }, [searchQuery, trades, filters, availableSymbols, availableTags]);
 
   const handleSort = (key: keyof Trade) => {
     setSortConfig(prev => ({
       key,
       direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc',
     }));
+  };
+
+  const handleDateRangeChange = (range: DateRange | undefined) => {
+    if (range) {
+      setFilters(prev => ({ 
+        ...prev, 
+        timePeriod: 'custom',
+        dateRange: range 
+      }));
+    } else {
+      setFilters(prev => ({ 
+        ...prev, 
+        timePeriod: 'all',
+        dateRange: undefined 
+      }));
+    }
+  };
+
+  const handleTagsChange = (tags: string[]) => {
+    setFilters(prev => ({ ...prev, tags }));
   };
 
   const sortedTrades = [...filteredTrades].sort((a, b) => {
@@ -263,12 +317,12 @@ const Journal = () => {
         <div className="flex flex-wrap gap-2">
           <div className="relative">
             <Search size={16} className="absolute left-2 top-2.5 text-muted-foreground" />
-            <input
+            <Input
               type="text"
               placeholder="Search trades..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-8 h-9 rounded-md border border-input bg-transparent text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring w-full sm:w-64"
+              className="pl-8 h-9 w-full sm:w-64"
             />
           </div>
           
@@ -282,7 +336,20 @@ const Journal = () => {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuLabel>Time Period</DropdownMenuLabel>
-              <Select value={filters.timePeriod} onValueChange={(value) => setFilters(prev => ({ ...prev, timePeriod: value as TimePeriod }))}>
+              <Select 
+                value={filters.timePeriod} 
+                onValueChange={(value) => {
+                  if (value !== 'custom') {
+                    setFilters(prev => ({ 
+                      ...prev, 
+                      timePeriod: value as TimePeriod,
+                      dateRange: undefined
+                    }));
+                  } else {
+                    setFilters(prev => ({ ...prev, timePeriod: value as TimePeriod }));
+                  }
+                }}
+              >
                 <SelectTrigger className="w-full h-8 mt-1">
                   <SelectValue placeholder="Select time period" />
                 </SelectTrigger>
@@ -292,10 +359,21 @@ const Journal = () => {
                   <SelectItem value="3m">Last 3 Months</SelectItem>
                   <SelectItem value="6m">Last 6 Months</SelectItem>
                   <SelectItem value="1y">Last Year</SelectItem>
+                  <SelectItem value="custom">Custom Range</SelectItem>
                 </SelectContent>
               </Select>
               
+              {filters.timePeriod === 'custom' && (
+                <div className="mt-2">
+                  <DateRangePicker 
+                    dateRange={filters.dateRange}
+                    onDateRangeChange={handleDateRangeChange}
+                  />
+                </div>
+              )}
+              
               <DropdownMenuSeparator />
+              
               <DropdownMenuLabel>Symbols</DropdownMenuLabel>
               <div className="max-h-32 overflow-y-auto">
                 <DropdownMenuCheckboxItem
@@ -374,6 +452,13 @@ const Journal = () => {
         </div>
       </div>
       
+      <TagFilter 
+        availableTags={availableTags}
+        selectedTags={filters.tags}
+        onTagsChange={handleTagsChange}
+        className="w-full sm:w-auto"
+      />
+      
       <div className="flex flex-col lg:flex-row gap-6">
         <MountTransition className="glass-card rounded-lg flex-1 overflow-hidden">
           <div className="overflow-x-auto">
@@ -446,6 +531,11 @@ const Journal = () => {
                       )}
                     </div>
                   </th>
+                  <th 
+                    className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider"
+                  >
+                    Tags
+                  </th>
                 </tr>
               </thead>
               <tbody className="bg-transparent divide-y divide-border">
@@ -486,11 +576,27 @@ const Journal = () => {
                       )}>
                         {trade.pips > 0 ? "+" : ""}{trade.pips.toFixed(1)}
                       </td>
+                      <td className="px-4 py-3 text-sm">
+                        {trade.tags && trade.tags.length > 0 ? (
+                          <div className="flex flex-wrap gap-1">
+                            {trade.tags.map(tag => (
+                              <span 
+                                key={tag} 
+                                className="px-2 py-0.5 bg-accent rounded-md text-xs"
+                              >
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">No tags</span>
+                        )}
+                      </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
+                    <td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">
                       No trades found
                     </td>
                   </tr>

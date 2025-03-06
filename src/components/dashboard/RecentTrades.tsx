@@ -4,6 +4,8 @@ import { ChevronDown, ChevronUp, Search } from 'lucide-react';
 import { MountTransition } from '@/components/ui/mt4-connector';
 import { cn } from '@/lib/utils';
 import { Trade } from '@/lib/types';
+import { Input } from '@/components/ui/input';
+import { TagFilter } from '@/components/ui/tag-filter';
 
 interface RecentTradesProps {
   trades: Trade[];
@@ -20,7 +22,18 @@ export const RecentTrades = ({ trades, className }: RecentTradesProps) => {
   });
   
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [filteredTrades, setFilteredTrades] = useState<Trade[]>(trades);
+  const [availableTags, setAvailableTags] = useState<string[]>([]);
+
+  useEffect(() => {
+    // Extract all unique tags from trades
+    const allTags = trades
+      .filter(trade => trade.tags && trade.tags.length > 0)
+      .flatMap(trade => trade.tags || []);
+    const uniqueTags = Array.from(new Set(allTags));
+    setAvailableTags(uniqueTags);
+  }, [trades]);
 
   const handleSort = (key: keyof Trade) => {
     setSortConfig(prev => ({
@@ -29,20 +42,29 @@ export const RecentTrades = ({ trades, className }: RecentTradesProps) => {
     }));
   };
 
-  // Update filtered trades when search query or trades change
+  // Update filtered trades when search query, tags, or trades change
   useEffect(() => {
-    if (searchQuery.trim() === '') {
-      setFilteredTrades(trades);
-    } else {
-      const filtered = trades.filter(trade => 
+    let filtered = [...trades];
+    
+    // Apply search filter
+    if (searchQuery.trim() !== '') {
+      filtered = filtered.filter(trade => 
         trade.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
         trade.type.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (trade.notes && trade.notes.toLowerCase().includes(searchQuery.toLowerCase())) ||
         (trade.tags && trade.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase())))
       );
-      setFilteredTrades(filtered);
     }
-  }, [searchQuery, trades]);
+    
+    // Apply tag filter
+    if (selectedTags.length > 0) {
+      filtered = filtered.filter(trade => 
+        trade.tags && trade.tags.some(tag => selectedTags.includes(tag))
+      );
+    }
+    
+    setFilteredTrades(filtered);
+  }, [searchQuery, selectedTags, trades]);
 
   const sortedTrades = [...filteredTrades].sort((a, b) => {
     if (sortConfig.key === 'openDate' || sortConfig.key === 'closeDate') {
@@ -99,14 +121,22 @@ export const RecentTrades = ({ trades, className }: RecentTradesProps) => {
           <h3 className="text-lg font-medium">Recent Trades</h3>
           <div className="relative w-full sm:w-64">
             <Search size={16} className="absolute left-2 top-2.5 text-muted-foreground" />
-            <input
+            <Input
               type="text"
               placeholder="Search trades..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-8 h-9 w-full rounded-md border border-input bg-transparent text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              className="pl-8 h-9 w-full"
             />
           </div>
+        </div>
+        
+        <div className="mb-4">
+          <TagFilter 
+            availableTags={availableTags}
+            selectedTags={selectedTags}
+            onTagsChange={setSelectedTags}
+          />
         </div>
         
         <div className="overflow-x-auto -mx-4 px-4">
@@ -119,6 +149,9 @@ export const RecentTrades = ({ trades, className }: RecentTradesProps) => {
                 <SortHeader title="Close Date" property="closeDate" />
                 <SortHeader title="Profit/Loss" property="profitLoss" />
                 <SortHeader title="Pips" property="pips" />
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Tags
+                </th>
               </tr>
             </thead>
             <tbody className="bg-transparent divide-y divide-border">
@@ -152,11 +185,27 @@ export const RecentTrades = ({ trades, className }: RecentTradesProps) => {
                     )}>
                       {trade.pips > 0 ? "+" : ""}{trade.pips.toFixed(1)}
                     </td>
+                    <td className="px-4 py-3 text-sm">
+                      {trade.tags && trade.tags.length > 0 ? (
+                        <div className="flex flex-wrap gap-1">
+                          {trade.tags.map(tag => (
+                            <span 
+                              key={tag} 
+                              className="px-2 py-0.5 bg-accent rounded-md text-xs"
+                            >
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground text-xs">No tags</span>
+                      )}
+                    </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
+                  <td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">
                     No trades found
                   </td>
                 </tr>
