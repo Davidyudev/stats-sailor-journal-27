@@ -12,7 +12,8 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  ZAxis
+  ZAxis,
+  Cell
 } from 'recharts';
 import { Button } from '@/components/ui/button';
 
@@ -38,6 +39,7 @@ export const DurationPerformanceChart = ({
         z: trade.lots,
         symbol: trade.symbol,
         type: trade.type,
+        isProfit: trade.profitLoss >= 0
       };
     });
   }, [trades]);
@@ -134,9 +136,16 @@ export const DurationPerformanceChart = ({
               <Scatter 
                 name="Trades" 
                 data={chartData} 
-                fill={(entry) => entry.y >= 0 ? "hsl(var(--profit))" : "hsl(var(--loss))"}
+                fill="hsl(var(--primary))"
                 shape="circle"
-              />
+              >
+                {chartData.map((entry, index) => (
+                  <Cell 
+                    key={`cell-${index}`} 
+                    fill={entry.isProfit ? "hsl(var(--profit))" : "hsl(var(--loss))"}
+                  />
+                ))}
+              </Scatter>
             </ScatterChart>
           </ResponsiveContainer>
         </div>
