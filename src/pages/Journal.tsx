@@ -23,6 +23,27 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
 
 const generateSampleTrades = (): Trade[] => {
   const symbols = ['EURUSD', 'GBPUSD', 'USDJPY', 'AUDUSD', 'USDCAD', 'BTCUSD'];
@@ -424,7 +445,7 @@ const Journal = () => {
               </DropdownMenuCheckboxItem>
               <DropdownMenuCheckboxItem
                 checked={filters.lossOnly}
-                onCheckedChange={() => setFilters(prev => ({ ...prev, lossOnly: !prev.lossOnly, profitOnly: prev.profitOnly && !prev.lossOnly ? false : prev.profitOnly }))}
+                onCheckedChange={() => setFilters(prev => ({ ...prev, lossOnly: !prev.lossOnly, profitOnly: prev.profitOnly && !prev.profitOnly ? false : prev.profitOnly }))}
               >
                 Losing Only
               </DropdownMenuCheckboxItem>
