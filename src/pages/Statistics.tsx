@@ -85,6 +85,9 @@ const Statistics = () => {
         expectancy: 0,
         longestWinningStreak: 0,
         longestLosingStreak: 0,
+        totalCommission: 0,
+        totalSwap: 0,
+        netProfit: 0
       };
       setFilteredStats(emptyStats);
       setFilteredSymbols([]);
@@ -93,13 +96,17 @@ const Statistics = () => {
       const winningTrades = filteredTrades.filter(trade => trade.profitLoss > 0);
       const losingTrades = filteredTrades.filter(trade => trade.profitLoss < 0);
       
+      const totalPL = filteredTrades.reduce((sum, trade) => sum + trade.profitLoss, 0);
+      const totalCommission = filteredTrades.reduce((sum, trade) => sum + (trade.commission || 0), 0);
+      const totalSwap = filteredTrades.reduce((sum, trade) => sum + (trade.swap || 0), 0);
+      
       const stats: StatsType = {
         totalTrades: filteredTrades.length,
         winningTrades: winningTrades.length,
         losingTrades: losingTrades.length,
         winRate: Math.round((winningTrades.length / filteredTrades.length) * 100),
-        totalProfitLoss: filteredTrades.reduce((sum, trade) => sum + trade.profitLoss, 0),
-        averageProfitLoss: filteredTrades.reduce((sum, trade) => sum + trade.profitLoss, 0) / filteredTrades.length,
+        totalProfitLoss: totalPL,
+        averageProfitLoss: totalPL / filteredTrades.length,
         bestTrade: Math.max(...filteredTrades.map(trade => trade.profitLoss)),
         worstTrade: Math.min(...filteredTrades.map(trade => trade.profitLoss)),
         maxDrawdown: Math.round(Math.random() * 20), // This would be calculated properly in a real app
@@ -109,7 +116,10 @@ const Statistics = () => {
         sharpeRatio: 1.2, // Simplified for this example
         expectancy: 0.5, // Simplified for this example
         longestWinningStreak: 3, // Simplified for this example
-        longestLosingStreak: 2, // Simplified for this example
+        longestLosingStreak: 2, // Simplified for this example,
+        totalCommission: totalCommission,
+        totalSwap: totalSwap,
+        netProfit: totalPL - totalCommission - totalSwap
       };
       
       setFilteredStats(stats);
