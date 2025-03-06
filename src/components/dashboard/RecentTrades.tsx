@@ -4,6 +4,7 @@ import { ChevronDown, ChevronUp, Search } from 'lucide-react';
 import { MountTransition } from '@/components/ui/mt4-connector';
 import { cn } from '@/lib/utils';
 import { Trade } from '@/lib/types';
+import { Input } from '@/components/ui/input';
 
 interface RecentTradesProps {
   trades: Trade[];
@@ -34,11 +35,12 @@ export const RecentTrades = ({ trades, className }: RecentTradesProps) => {
     if (searchQuery.trim() === '') {
       setFilteredTrades(trades);
     } else {
+      const lowercaseQuery = searchQuery.toLowerCase();
       const filtered = trades.filter(trade => 
-        trade.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        trade.type.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (trade.notes && trade.notes.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (trade.tags && trade.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase())))
+        trade.symbol.toLowerCase().includes(lowercaseQuery) ||
+        trade.type.toLowerCase().includes(lowercaseQuery) ||
+        (trade.notes && trade.notes.toLowerCase().includes(lowercaseQuery)) ||
+        (trade.tags && trade.tags.some(tag => tag.toLowerCase().includes(lowercaseQuery)))
       );
       setFilteredTrades(filtered);
     }
@@ -99,12 +101,12 @@ export const RecentTrades = ({ trades, className }: RecentTradesProps) => {
           <h3 className="text-lg font-medium">Recent Trades</h3>
           <div className="relative w-full sm:w-64">
             <Search size={16} className="absolute left-2 top-2.5 text-muted-foreground" />
-            <input
+            <Input
               type="text"
               placeholder="Search trades..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-8 h-9 w-full rounded-md border border-input bg-transparent text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              className="pl-8 h-9 w-full"
             />
           </div>
         </div>
