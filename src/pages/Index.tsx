@@ -11,21 +11,14 @@ import { PerformanceCalendar } from '@/components/dashboard/PerformanceCalendar'
 import { Trade, DailyPerformance } from '@/lib/types';
 import { mockDataService } from '@/lib/services/mockDataService';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ChartDetailModal } from '@/components/dashboard/ChartDetailModal';
-import { TimePeriod } from '@/components/filters/DateRangeFilter';
+
+type TimePeriod = 'all' | '1m' | '3m' | '6m' | '1y';
 
 const Index = () => {
   const [trades, setTrades] = useState<Trade[]>([]);
   const [performance, setPerformance] = useState<DailyPerformance[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedTimePeriod, setSelectedTimePeriod] = useState<TimePeriod>('all');
-  const [startDate, setStartDate] = useState<Date | undefined>(undefined);
-  const [endDate, setEndDate] = useState<Date | undefined>(undefined);
-  
-  // Modal states
-  const [assetModalOpen, setAssetModalOpen] = useState(false);
-  const [monthlyModalOpen, setMonthlyModalOpen] = useState(false);
-  const [durationModalOpen, setDurationModalOpen] = useState(false);
   
   const holidays = [
     {
@@ -48,30 +41,22 @@ const Index = () => {
 
   // Filter trades based on selected time period
   const filteredTrades = (() => {
-    let result = [...trades];
+    if (selectedTimePeriod === 'all') return trades;
     
-    if (selectedTimePeriod === 'custom' && startDate && endDate) {
-      result = result.filter(trade => 
-        trade.closeDate >= startDate && trade.closeDate <= endDate
-      );
-    } else if (selectedTimePeriod !== 'all') {
-      const now = new Date();
-      let monthsToSubtract = 0;
-      
-      switch(selectedTimePeriod) {
-        case '1m': monthsToSubtract = 1; break;
-        case '3m': monthsToSubtract = 3; break;
-        case '6m': monthsToSubtract = 6; break;
-        case '1y': monthsToSubtract = 12; break;
-      }
-      
-      const cutoffDate = new Date();
-      cutoffDate.setMonth(now.getMonth() - monthsToSubtract);
-      
-      result = result.filter(trade => trade.closeDate >= cutoffDate);
+    const now = new Date();
+    let monthsToSubtract = 0;
+    
+    switch(selectedTimePeriod) {
+      case '1m': monthsToSubtract = 1; break;
+      case '3m': monthsToSubtract = 3; break;
+      case '6m': monthsToSubtract = 6; break;
+      case '1y': monthsToSubtract = 12; break;
     }
     
-    return result;
+    const cutoffDate = new Date();
+    cutoffDate.setMonth(now.getMonth() - monthsToSubtract);
+    
+    return trades.filter(trade => trade.closeDate >= cutoffDate);
   })();
 
   // Calculate statistics based on filtered trades
@@ -84,7 +69,7 @@ const Index = () => {
 
   // Filter symbols based on time period
   const filteredSymbols = (() => {
-    if (selectedTimePeriod === 'all' && !startDate && !endDate) return mockDataService.getSymbols();
+    if (selectedTimePeriod === 'all') return mockDataService.getSymbols();
     
     // Create a map of symbols with reset performance data
     const symbolMap = new Map();
@@ -127,31 +112,22 @@ const Index = () => {
 
   // Filter performance data based on time period
   const filteredPerformance = (() => {
-    let result = [...performance];
+    if (selectedTimePeriod === 'all') return performance;
     
-    if (selectedTimePeriod === 'custom' && startDate && endDate) {
-      result = result.filter(item => {
-        const itemDate = new Date(item.date);
-        return itemDate >= startDate && itemDate <= endDate;
-      });
-    } else if (selectedTimePeriod !== 'all') {
-      const now = new Date();
-      let monthsToSubtract = 0;
-      
-      switch(selectedTimePeriod) {
-        case '1m': monthsToSubtract = 1; break;
-        case '3m': monthsToSubtract = 3; break;
-        case '6m': monthsToSubtract = 6; break;
-        case '1y': monthsToSubtract = 12; break;
-      }
-      
-      const cutoffDate = new Date();
-      cutoffDate.setMonth(now.getMonth() - monthsToSubtract);
-      
-      result = result.filter(item => new Date(item.date) >= cutoffDate);
+    const now = new Date();
+    let monthsToSubtract = 0;
+    
+    switch(selectedTimePeriod) {
+      case '1m': monthsToSubtract = 1; break;
+      case '3m': monthsToSubtract = 3; break;
+      case '6m': monthsToSubtract = 6; break;
+      case '1y': monthsToSubtract = 12; break;
     }
     
-    return result;
+    const cutoffDate = new Date();
+    cutoffDate.setMonth(now.getMonth() - monthsToSubtract);
+    
+    return performance.filter(item => item.date >= cutoffDate);
   })();
 
   return (
@@ -209,13 +185,7 @@ const Index = () => {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <PerformanceChart 
               data={performance}
-              className="lg:col-span-2"
-              selectedPeriod={selectedTimePeriod}
-              setSelectedPeriod={setSelectedTimePeriod}
-              startDate={startDate}
-              endDate={endDate}
-              setStartDate={setStartDate}
-              setEndDate={setEndDate}
+              className="lg:col-span-2" 
             />
             
             <div className="glass-card rounded-lg p-4">
@@ -279,18 +249,9 @@ const Index = () => {
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <AssetPerformanceChart 
-              data={filteredSymbols}
-              onMaximize={() => setAssetModalOpen(true)} 
-            />
-            <MonthlyPerformanceChart 
-              data={filteredPerformance}
-              onMaximize={() => setMonthlyModalOpen(true)} 
-            />
-            <DurationPerformanceChart 
-              trades={filteredTrades}
-              onMaximize={() => setDurationModalOpen(true)} 
-            />
+            <AssetPerformanceChart data={filteredSymbols} />
+            <MonthlyPerformanceChart data={filteredPerformance} />
+            <DurationPerformanceChart trades={filteredTrades} />
           </div>
         </TabsContent>
         
@@ -302,41 +263,7 @@ const Index = () => {
         </TabsContent>
       </Tabs>
       
-      <RecentTrades trades={filteredTrades.slice(0, 10)} />
-      
-      {/* Detailed Chart Modals */}
-      <ChartDetailModal
-        open={assetModalOpen}
-        onOpenChange={setAssetModalOpen}
-        title="Asset Performance"
-      >
-        <AssetPerformanceChart 
-          data={filteredSymbols}
-          isDetailed={true}
-        />
-      </ChartDetailModal>
-      
-      <ChartDetailModal
-        open={monthlyModalOpen}
-        onOpenChange={setMonthlyModalOpen}
-        title="Monthly Performance"
-      >
-        <MonthlyPerformanceChart 
-          data={filteredPerformance}
-          isDetailed={true}
-        />
-      </ChartDetailModal>
-      
-      <ChartDetailModal
-        open={durationModalOpen}
-        onOpenChange={setDurationModalOpen}
-        title="Trade Duration vs P/L"
-      >
-        <DurationPerformanceChart 
-          trades={filteredTrades}
-          isDetailed={true}
-        />
-      </ChartDetailModal>
+      <RecentTrades trades={mockDataService.getRecentTrades(10)} />
     </div>
   );
 };
