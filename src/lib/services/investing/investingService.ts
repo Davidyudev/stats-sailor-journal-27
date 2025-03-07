@@ -25,12 +25,20 @@ class InvestingService {
     }
     
     // Fetch new data
-    const events = await eventsFetcher.fetchEvents(year, month);
-    
-    // Cache the results
-    eventsCache.set(year, month, events);
-    
-    return events;
+    try {
+      console.log(`Fetching fresh data for ${year}-${month + 1}`);
+      const events = await eventsFetcher.fetchEvents(year, month);
+      
+      // Cache the results only if we got some events
+      if (events && events.length > 0) {
+        eventsCache.set(year, month, events);
+      }
+      
+      return events;
+    } catch (error) {
+      console.error(`Error fetching economic events for ${year}-${month + 1}:`, error);
+      return [];
+    }
   }
   
   // Manual refresh - clear cache for a specific month
@@ -55,17 +63,29 @@ class InvestingService {
       const currentYear = now.getFullYear();
       const currentMonth = now.getMonth();
       
-      // Clear cache for current month to force refresh
-      this.clearCache(currentYear, currentMonth);
-      
-      // Trigger refresh
-      this.getEvents(currentYear, currentMonth)
-        .then((events) => {
-          console.log(`Successfully refreshed data at ${new Date().toLocaleTimeString()}`);
-          console.log(`Fetched ${events.length} events`);
-        })
-        .catch(err => console.error('Failed to refresh data:', err));
+      // Check if cache is stale before refreshing
+      if (eventsCache.isStale(currentYear, currentMonth)) {
+        console.log(`Cache is stale, refreshing data for ${currentYear}-${currentMonth + 1}`);
+        
+        // Clear cache for current month to force refresh
+        this.clearCache(currentYear, currentMonth);
+        
+        // Trigger refresh
+        this.getEvents(currentYear, currentMonth)
+          .then((events) => {
+            console.log(`Successfully refreshed data at ${new Date().toLocaleTimeString()}`);
+            console.log(`Fetched ${events.length} events`);
+          })
+          .catch(err => console.error('Failed to refresh data:', err));
+      } else {
+        console.log(`Cache is still valid for ${currentYear}-${currentMonth + 1}, skipping refresh`);
+      }
     }, intervalMinutes * 60 * 1000);
+  }
+  
+  // Change cache duration
+  public setCacheDuration(minutes: number): void {
+    eventsCache.setCacheDuration(minutes);
   }
 }
 
