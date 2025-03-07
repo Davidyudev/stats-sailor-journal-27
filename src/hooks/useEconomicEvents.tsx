@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { getMonth, getYear } from 'date-fns';
 import { forexFactoryService, ForexEvent } from '@/lib/services/forexFactoryService';
 import { toast } from "sonner";
@@ -22,65 +22,70 @@ export const useEconomicEvents = (currentMonth: Date) => {
   const [availableCurrencies, setAvailableCurrencies] = useState<string[]>([]);
   const [selectedCurrencies, setSelectedCurrencies] = useState<Record<string, boolean>>({});
 
+  // Function to fetch economic events
+  const fetchEconomicEvents = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const year = getYear(currentMonth);
+      const month = getMonth(currentMonth);
+      
+      // Store the current real data status before fetching
+      const wasMockData = isMockData;
+      
+      console.log(`Fetching economic events for ${year}-${month + 1}`);
+      
+      // Try to get events
+      const events = await forexFactoryService.getEvents(year, month);
+      
+      console.log(`Received ${events.length} events`);
+      
+      // Check for data quality
+      const hasHighImpact = events.some(e => e.impact === 'high');
+      const hasMediumImpact = events.some(e => e.impact === 'medium');
+      
+      if (events.length === 0 || (!hasHighImpact && !hasMediumImpact)) {
+        console.log("Data quality check failed - empty or all low impact");
+        setIsMockData(true);
+      } else {
+        setIsMockData(false);
+        console.log("Using real data from Forex Factory");
+      }
+      
+      setEconomicEvents(events);
+      setLastRefreshed(new Date());
+      
+      // If we were using mock data before and now we got real data, show success toast
+      if (wasMockData && !isMockData) {
+        toast.success('Successfully fetched real economic calendar data');
+      }
+      
+      // Extract unique currencies
+      const currencies = [...new Set(events.map(event => event.currency))].sort();
+      setAvailableCurrencies(currencies);
+      
+      // Initialize selected currencies if needed
+      if (Object.keys(selectedCurrencies).length === 0 || currencies.length !== Object.keys(selectedCurrencies).length) {
+        const currencySelections: Record<string, boolean> = {};
+        currencies.forEach(currency => {
+          currencySelections[currency] = selectedCurrencies[currency] !== undefined ? 
+            selectedCurrencies[currency] : true;
+        });
+        setSelectedCurrencies(currencySelections);
+      }
+      
+    } catch (error) {
+      console.error('Failed to fetch economic events:', error);
+      setIsMockData(true);
+      toast.error('Failed to load economic calendar data. Using fallback data.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [currentMonth, isMockData, selectedCurrencies]);
+
   // Fetch economic events when the month changes
   useEffect(() => {
-    const fetchEconomicEvents = async () => {
-      setIsLoading(true);
-      try {
-        const year = getYear(currentMonth);
-        const month = getMonth(currentMonth);
-        
-        // Store the current real data status before fetching
-        const wasMockData = isMockData;
-        
-        // Try to get events
-        const events = await forexFactoryService.getEvents(year, month);
-        
-        // Check if we have empty events or if all events have low impact
-        // This could indicate scraping issues
-        const hasHighImpact = events.some(e => e.impact === 'high');
-        const hasMediumImpact = events.some(e => e.impact === 'medium');
-        
-        if (events.length === 0 || (!hasHighImpact && !hasMediumImpact)) {
-          console.log("Data quality check failed - empty or all low impact");
-          setIsMockData(true);
-        } else {
-          setIsMockData(false);
-        }
-        
-        setEconomicEvents(events);
-        setLastRefreshed(new Date());
-        
-        // If we were using mock data before and now we got real data, show success toast
-        if (wasMockData && !isMockData) {
-          toast.success('Successfully fetched real economic calendar data');
-        }
-        
-        // Extract unique currencies
-        const currencies = [...new Set(events.map(event => event.currency))].sort();
-        setAvailableCurrencies(currencies);
-        
-        // Initialize selected currencies if needed
-        if (Object.keys(selectedCurrencies).length === 0 || currencies.length !== Object.keys(selectedCurrencies).length) {
-          const currencySelections: Record<string, boolean> = {};
-          currencies.forEach(currency => {
-            currencySelections[currency] = selectedCurrencies[currency] !== undefined ? 
-              selectedCurrencies[currency] : true;
-          });
-          setSelectedCurrencies(currencySelections);
-        }
-        
-      } catch (error) {
-        console.error('Failed to fetch economic events:', error);
-        setIsMockData(true);
-        toast.error('Failed to load economic calendar data. Using fallback data.');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     fetchEconomicEvents();
-  }, [currentMonth]);
+  }, [currentMonth, fetchEconomicEvents]);
   
   // Manual refresh function
   const refreshEvents = async () => {
@@ -147,6 +152,9 @@ export const useEconomicEvents = (currentMonth: Date) => {
       
       return impactMatches && currencyMatches && searchMatches;
     });
+    
+    // Debug the filtering
+    console.log(`Filtered ${economicEvents.length} events to ${filtered.length} events`);
     
     setFilteredEvents(filtered);
   }, [economicEvents, impactFilters, selectedCurrencies, currencyFilter]);
