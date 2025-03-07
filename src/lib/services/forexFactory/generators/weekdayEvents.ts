@@ -1,6 +1,6 @@
 
 import { ForexEvent, SeededRandom, HIGH_IMPACT_EVENTS, MEDIUM_IMPACT_EVENTS, LOW_IMPACT_EVENTS } from '../types';
-import { addRandomEvent } from '../eventHelpers';
+import { addRandomEvent } from '../helpers';
 
 // Generate events for weekdays in the month
 export function generateWeekdayEvents(

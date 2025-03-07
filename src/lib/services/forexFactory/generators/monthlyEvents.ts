@@ -1,6 +1,6 @@
 
 import { ForexEvent, SeededRandom } from '../types';
-import { findNthDayOfWeek } from '../eventHelpers';
+import { findNthDayOfWeek } from '../helpers';
 
 // Generate common monthly economic events
 export function generateCommonMonthlyEvents(
