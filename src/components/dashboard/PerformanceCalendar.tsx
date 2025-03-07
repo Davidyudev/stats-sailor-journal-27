@@ -13,7 +13,7 @@ import { useCalendarDates } from '@/hooks/useCalendarDates';
 import { useEconomicEvents } from '@/hooks/useEconomicEvents';
 import { useCalendarDetails } from '@/hooks/useCalendarDetails';
 import { Button } from '@/components/ui/button';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, AlertCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { Toaster } from 'sonner';
 
@@ -53,7 +53,8 @@ export const PerformanceCalendar = ({
     selectedCurrencies,
     handleToggleImpact,
     handleToggleCurrency,
-    handleSelectAllCurrencies
+    handleSelectAllCurrencies,
+    isMockData
   } = useEconomicEvents(currentMonth);
   
   const {
@@ -100,11 +101,19 @@ export const PerformanceCalendar = ({
                   goToToday={goToToday}
                 />
               </div>
-              {lastRefreshed && (
-                <span className="text-xs text-muted-foreground">
-                  Last updated: {format(lastRefreshed, 'MMM d, yyyy h:mm a')}
-                </span>
-              )}
+              <div className="flex items-center gap-2">
+                {isMockData && (
+                  <div className="flex items-center text-xs text-warning">
+                    <AlertCircle className="h-3 w-3 mr-1" />
+                    <span>Using mock data</span>
+                  </div>
+                )}
+                {lastRefreshed && (
+                  <span className="text-xs text-muted-foreground">
+                    Last updated: {format(lastRefreshed, 'MMM d, yyyy h:mm a')}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
           

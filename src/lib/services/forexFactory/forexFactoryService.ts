@@ -7,6 +7,8 @@ class ForexFactoryService {
   private cachedEvents: Record<string, ForexEvent[]> = {};
   private isRefreshing: boolean = false;
   private lastRefreshAttempt: Date | null = null;
+  private failedAttempts: number = 0;
+  private maxFailedAttempts: number = 3;
   
   private constructor() {}
   
@@ -28,12 +30,15 @@ class ForexFactoryService {
     }
     
     try {
-      // Don't attempt to fetch if we've tried recently and failed
-      if (this.lastRefreshAttempt) {
+      // Don't attempt to fetch if we've tried recently and failed multiple times
+      if (this.failedAttempts >= this.maxFailedAttempts && this.lastRefreshAttempt) {
         const timeSinceLastAttempt = Date.now() - this.lastRefreshAttempt.getTime();
-        if (timeSinceLastAttempt < 5 * 60 * 1000) { // 5 minutes
-          console.log('Using mock data due to recent failed attempt');
+        if (timeSinceLastAttempt < 30 * 60 * 1000) { // 30 minutes
+          console.log('Using mock data due to multiple failed attempts');
           return this.generateMockEvents(year, month);
+        } else {
+          // Reset failed attempts counter after 30 minutes
+          this.failedAttempts = 0;
         }
       }
       
@@ -50,8 +55,6 @@ class ForexFactoryService {
       // Format month for URL (1-based, padded with 0)
       const urlMonth = String(month + 1).padStart(2, '0');
       
-      // Instead of using cors-anywhere, we'll try a different approach
-      // by using an open CORS proxy or a service that's more reliable
       const proxyUrl = 'https://corsproxy.io/';
       const targetUrl = `https://www.forexfactory.com/calendar?month=${year}.${urlMonth}`;
       const url = `${proxyUrl}?${encodeURIComponent(targetUrl)}`;
@@ -69,16 +72,32 @@ class ForexFactoryService {
       }
       
       const html = await response.text();
+      
+      if (!html || html.length < 1000) {
+        throw new Error('Received empty or invalid HTML response');
+      }
+      
+      // Check if the HTML contains calendar data
+      if (!html.includes('calendar__row') && !html.includes('calendar_row')) {
+        throw new Error('HTML does not contain expected calendar data');
+      }
+      
       const events = this.parseForexFactoryHtml(html, year, month);
+      
+      if (events.length === 0) {
+        throw new Error('Failed to parse any events from HTML');
+      }
       
       // Cache the results
       this.cachedEvents[cacheKey] = events;
       this.isRefreshing = false;
+      this.failedAttempts = 0; // Reset failed attempts on success
       
       return events;
     } catch (error) {
       console.error("Failed to fetch economic events from Forex Factory:", error);
       this.isRefreshing = false;
+      this.failedAttempts++; // Increment failed attempts counter
       
       // Fallback to mock data in case of scraping failure
       return this.generateMockEvents(year, month);
@@ -100,57 +119,70 @@ class ForexFactoryService {
     const doc = parser.parseFromString(html, 'text/html');
     
     // Find all event rows in the calendar table
-    const eventRows = doc.querySelectorAll('.calendar_row');
+    // Try both class names as Forex Factory might use different classes
+    const eventRows = doc.querySelectorAll('.calendar_row, .calendar__row');
+    
+    if (eventRows.length === 0) {
+      console.error('No event rows found in HTML');
+      return events;
+    }
+    
+    console.log(`Found ${eventRows.length} event rows in HTML`);
     
     let currentDate = new Date(year, month, 1);
     
     eventRows.forEach(row => {
-      // Extract date if present
-      const dateCell = row.querySelector('.calendar__date');
-      if (dateCell && dateCell.textContent?.trim()) {
-        const dateText = dateCell.textContent.trim();
-        const dayMatch = dateText.match(/\d+/);
-        if (dayMatch) {
-          const day = parseInt(dayMatch[0]);
-          currentDate = new Date(year, month, day);
-        }
-      }
-      
-      // Extract event data
-      const currencyElement = row.querySelector('.calendar__currency');
-      const impactElement = row.querySelector('.calendar__impact');
-      const eventElement = row.querySelector('.calendar__event');
-      const timeElement = row.querySelector('.calendar__time');
-      const actualElement = row.querySelector('.calendar__actual');
-      const forecastElement = row.querySelector('.calendar__forecast');
-      const previousElement = row.querySelector('.calendar__previous');
-      
-      if (currencyElement && eventElement) {
-        // Determine impact level
-        let impact: 'high' | 'medium' | 'low' = 'low';
-        if (impactElement) {
-          const impactClass = impactElement.className;
-          if (impactClass.includes('high')) impact = 'high';
-          else if (impactClass.includes('medium')) impact = 'medium';
+      try {
+        // Extract date if present - try different selectors
+        const dateCell = row.querySelector('.calendar__date, .calendar_date');
+        if (dateCell && dateCell.textContent?.trim()) {
+          const dateText = dateCell.textContent.trim();
+          const dayMatch = dateText.match(/\d+/);
+          if (dayMatch) {
+            const day = parseInt(dayMatch[0]);
+            currentDate = new Date(year, month, day);
+          }
         }
         
-        // Format time
-        const timeText = timeElement?.textContent?.trim() || 'All Day';
-        const formattedTime = this.formatTimeToAMPM(timeText);
+        // Extract event data - trying different selectors
+        const currencyElement = row.querySelector('.calendar__currency, .calendar_currency');
+        const impactElement = row.querySelector('.calendar__impact, .calendar_impact');
+        const eventElement = row.querySelector('.calendar__event, .calendar_event');
+        const timeElement = row.querySelector('.calendar__time, .calendar_time');
+        const actualElement = row.querySelector('.calendar__actual, .calendar_actual');
+        const forecastElement = row.querySelector('.calendar__forecast, .calendar_forecast');
+        const previousElement = row.querySelector('.calendar__previous, .calendar_previous');
         
-        events.push({
-          date: new Date(currentDate),
-          time: formattedTime,
-          currency: currencyElement.textContent?.trim() || '',
-          impact: impact,
-          name: eventElement.textContent?.trim() || '',
-          forecast: forecastElement?.textContent?.trim() || '',
-          previous: previousElement?.textContent?.trim() || '',
-          actual: actualElement?.textContent?.trim() || undefined
-        });
+        if (currencyElement && eventElement) {
+          // Determine impact level
+          let impact: 'high' | 'medium' | 'low' = 'low';
+          if (impactElement) {
+            const impactClass = impactElement.className;
+            if (impactClass.includes('high') || impactClass.includes('red')) impact = 'high';
+            else if (impactClass.includes('medium') || impactClass.includes('orange') || impactClass.includes('yel')) impact = 'medium';
+          }
+          
+          // Format time
+          const timeText = timeElement?.textContent?.trim() || 'All Day';
+          const formattedTime = this.formatTimeToAMPM(timeText);
+          
+          events.push({
+            date: new Date(currentDate),
+            time: formattedTime,
+            currency: currencyElement.textContent?.trim() || '',
+            impact: impact,
+            name: eventElement.textContent?.trim() || '',
+            forecast: forecastElement?.textContent?.trim() || '',
+            previous: previousElement?.textContent?.trim() || '',
+            actual: actualElement?.textContent?.trim() || undefined
+          });
+        }
+      } catch (innerError) {
+        console.error('Error parsing row:', innerError);
       }
     });
     
+    console.log(`Successfully parsed ${events.length} events`);
     return events;
   }
   
@@ -181,8 +213,11 @@ class ForexFactoryService {
   // Manual refresh - clear cache for a specific month
   public clearCache(year: number, month: number): void {
     const cacheKey = `${year}-${month}`;
-    this.cachedEvents[cacheKey] = undefined as any;
+    delete this.cachedEvents[cacheKey];
     console.log(`Cleared cache for ${cacheKey}`);
+    
+    // Also reset failed attempts counter
+    this.failedAttempts = 0;
   }
   
   // Setup periodic refresh of data
@@ -205,7 +240,10 @@ class ForexFactoryService {
       
       // Trigger refresh
       this.getEvents(currentYear, currentMonth)
-        .then(() => console.log(`Successfully refreshed data at ${new Date().toLocaleTimeString()}`))
+        .then((events) => {
+          console.log(`Successfully refreshed data at ${new Date().toLocaleTimeString()}`);
+          console.log(`Fetched ${events.length} events`);
+        })
         .catch(err => console.error('Failed to refresh data:', err));
     }, intervalMinutes * 60 * 1000);
   }
