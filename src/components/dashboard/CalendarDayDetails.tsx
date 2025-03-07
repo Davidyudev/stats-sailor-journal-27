@@ -56,7 +56,13 @@ export const CalendarDayDetails = ({
     return timeA.localeCompare(timeB);
   });
 
+  // Ensure we have a valid date object and format it
   const formattedDate = date ? format(new Date(date), 'EEEE, MMMM d, yyyy') : '';
+  
+  // Calculate wins from performance data using winRate
+  const calculateWins = (performance: DailyPerformance) => {
+    return Math.round(performance.winRate * performance.trades);
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -106,7 +112,7 @@ export const CalendarDayDetails = ({
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-muted-foreground">Win/Loss:</span>
                     <span className="font-medium">
-                      {Math.round(performance.winRate * performance.trades)}/{performance.trades - Math.round(performance.winRate * performance.trades)}
+                      {calculateWins(performance)}/{performance.trades - calculateWins(performance)}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">

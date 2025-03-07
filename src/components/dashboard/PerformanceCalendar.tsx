@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { MountTransition } from '@/components/ui/mt4-connector';
 import { cn } from '@/lib/utils';
 import { DailyPerformance } from '@/lib/types';
-import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addMonths, subMonths, addDays, isSameMonth, isSameDay, getMonth, getYear } from 'date-fns';
+import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addMonths, subMonths, addDays, isSameMonth, isSameDay, getMonth, getYear, isValid, parse } from 'date-fns';
 import { ChevronLeft, ChevronRight, AlertTriangle, Info, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { forexFactoryService, ForexEvent } from '@/lib/services/forexFactoryService';
@@ -118,24 +118,30 @@ export const PerformanceCalendar = ({
   };
 
   const onDateClick = (day: Date) => {
-    // Set the selected date to the clicked day
-    setSelectedDate(new Date(day));
+    // Set the selected date to the clicked day (create a new Date object to avoid reference issues)
+    const clickedDate = new Date(day);
+    setSelectedDate(clickedDate);
     
-    // Get events for this day
-    const dateStr = format(day, 'yyyy-MM-dd');
-    const eventsForDay = filteredEvents.filter(event => 
-      format(new Date(event.date), 'yyyy-MM-dd') === dateStr
-    );
+    // Get events for this day - using the proper date string format
+    const dateStr = format(clickedDate, 'yyyy-MM-dd');
     
-    // Get performance data for this day
-    const performanceForDay = data.find(item => 
-      format(new Date(item.date), 'yyyy-MM-dd') === dateStr
-    );
+    // Find events for this specific day by comparing date strings
+    const eventsForDay = filteredEvents.filter(event => {
+      const eventDate = new Date(event.date);
+      return format(eventDate, 'yyyy-MM-dd') === dateStr;
+    });
     
-    // Get holiday info for this day
-    const holidayForDay = holidays.find(holiday => 
-      format(new Date(holiday.date), 'yyyy-MM-dd') === dateStr
-    );
+    // Find performance data for this specific day
+    const performanceForDay = data.find(item => {
+      const itemDate = new Date(item.date);
+      return format(itemDate, 'yyyy-MM-dd') === dateStr;
+    });
+    
+    // Find holiday info for this specific day
+    const holidayForDay = holidays.find(holiday => {
+      const holidayDate = new Date(holiday.date);
+      return format(holidayDate, 'yyyy-MM-dd') === dateStr;
+    });
     
     // Set the selected day data
     setSelectedDayEvents(eventsForDay);
@@ -242,10 +248,10 @@ export const PerformanceCalendar = ({
 
     while (day <= endDate) {
       for (let i = 0; i < 7; i++) {
-        const dateStr = format(day, 'yyyy-MM-dd');
-        const dayPerformance = performanceLookup[dateStr];
-        const dayEvents = eventsLookup[dateStr] || [];
-        const holiday = holidaysLookup[dateStr];
+        const formattedDate = format(day, 'yyyy-MM-dd');
+        const dayPerformance = performanceLookup[formattedDate];
+        const dayEvents = eventsLookup[formattedDate] || [];
+        const holiday = holidaysLookup[formattedDate];
         
         const hasHighImpactEvent = dayEvents.some(e => e.impact === 'high');
         
@@ -464,7 +470,7 @@ export const PerformanceCalendar = ({
         </div>
       </div>
       
-      {/* Day details dialog */}
+      {/* Only render the details dialog if there's a selected date */}
       {selectedDate && (
         <CalendarDayDetails
           isOpen={isDetailsOpen}
