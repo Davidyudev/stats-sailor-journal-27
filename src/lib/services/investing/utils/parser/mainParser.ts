@@ -21,16 +21,39 @@ export function parseInvestingEvents(html: string, options: ParserOptions): Pars
     
     // Find event rows
     const eventRows = findEventRows($);
+    if (verbose) console.log(`Found ${eventRows.length} potential event rows in HTML`);
     
     // Process each row
+    let successCount = 0;
+    let filteredOutCount = 0;
+    
     eventRows.each((_, row) => {
       const event = parseEventRow($, row, year, month);
       if (event) {
         events.push(event);
+        successCount++;
+      } else {
+        filteredOutCount++;
       }
     });
     
-    if (verbose) console.log(`Successfully parsed ${events.length} events`);
+    if (verbose) {
+      console.log(`Successfully parsed ${events.length} events (${successCount} valid events, ${filteredOutCount} filtered out)`);
+      
+      // Log distribution of events by day to help diagnose date issues
+      const eventsByDay = events.reduce((acc, event) => {
+        const day = event.date.getDate();
+        acc[day] = (acc[day] || 0) + 1;
+        return acc;
+      }, {} as Record<number, number>);
+      
+      console.log('Events distribution by day:');
+      Object.entries(eventsByDay)
+        .sort(([dayA], [dayB]) => Number(dayA) - Number(dayB))
+        .forEach(([day, count]) => {
+          console.log(`- Day ${day}: ${count} events`);
+        });
+    }
     
     // Data quality checks
     const dataQualityWarnings = evaluateDataQuality(events, html);

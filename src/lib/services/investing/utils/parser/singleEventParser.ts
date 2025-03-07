@@ -15,6 +15,7 @@ export function parseEventRow($: cheerio.CheerioAPI, row: any, year: number, mon
     const { eventDate, timeStr } = extractDateTime($row, year, month);
     
     // Check if this event is in the requested month and year
+    // Only filter by year and month, not by day, to include all days in the month
     if (!eventDate || eventDate.getMonth() !== month || eventDate.getFullYear() !== year) {
       return null;
     }
@@ -34,6 +35,9 @@ export function parseEventRow($: cheerio.CheerioAPI, row: any, year: number, mon
     
     // Extract forecast, previous, and actual values
     const { forecast, previous, actual } = extractValues($row);
+    
+    // Add logging to diagnose date issues
+    console.log(`Parsed event: ${name} on ${eventDate.toDateString()} (${month}/${year})`);
     
     // Create event object
     return {
