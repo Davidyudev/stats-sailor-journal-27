@@ -78,7 +78,7 @@ export const CalendarGrid = ({
       day = addDays(day, 1);
     }
     rows.push(
-      <div className="grid grid-cols-7" key={day.toString()}>
+      <div className="grid grid-cols-7 gap-1" key={day.toString()}>
         {days}
       </div>
     );
