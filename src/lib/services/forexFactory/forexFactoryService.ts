@@ -1,4 +1,3 @@
-
 import { ForexEvent, SeededRandom } from './types';
 import { generateMonthEvents } from './eventGenerators';
 
@@ -118,7 +117,7 @@ class ForexFactoryService {
   private extractCalendarData(html: string, year: number, month: number): ForexEvent[] {
     try {
       // Look for the embedded calendar data
-      const calendarStateRegex = /window\.calendarComponentStates\[\d+\]\s*=\s*({[\s\S]*?});/;
+      const calendarStateRegex = /window\.calendarComponentStates\[\d+\]\s*=\s*({[\s\S]*?days:.*?\[.*?\].*?});/;
       const match = html.match(calendarStateRegex);
       
       if (!match || !match[1]) {
@@ -126,15 +125,25 @@ class ForexFactoryService {
         return [];
       }
       
-      // Extract and parse the JSON data
+      // Extract and parse the JSON data safely by wrapping it in a safer evaluation context
       let calendarData;
       try {
-        // Clean the JSON string before parsing
-        const jsonStr = match[1].replace(/\\"/g, '"');
-        calendarData = Function('return ' + jsonStr)();
+        // Clean JSON string - remove all non-JSON constructs
+        const jsonText = match[1].replace(/\\'/g, "'")
+                                .replace(/\\"/g, '"')
+                                .replace(/new Date\([^)]+\)/g, '"__date__"')
+                                .replace(/,\s*}/g, '}')  // Remove trailing commas
+                                .replace(/,\s*]/g, ']'); // Remove trailing commas in arrays
+                                
+        // Use a more careful approach than Function() constructor
+        calendarData = JSON.parse(jsonText, (key, value) => {
+          if (value === "__date__") return null;
+          return value;
+        });
       } catch (e) {
         console.error('Error parsing calendar JSON data:', e);
-        return [];
+        // As a fallback, try direct regex extraction of the days array
+        return this.extractDaysDirectly(html, year, month);
       }
       
       if (!calendarData || !calendarData.days) {
@@ -164,7 +173,8 @@ class ForexFactoryService {
           let impact: 'high' | 'medium' | 'low' = 'low';
           
           if (event.impactClass) {
-            if (event.impactClass.includes('red') || event.impactTitle?.includes('High Impact')) {
+            if (event.impactClass.includes('red') || 
+                event.impactTitle?.includes('High Impact')) {
               impact = 'high';
             } else if (event.impactClass.includes('orange') || 
                       event.impactClass.includes('yel') || 
@@ -197,6 +207,76 @@ class ForexFactoryService {
       return events;
     } catch (error) {
       console.error('Error extracting calendar data:', error);
+      return [];
+    }
+  }
+  
+  // Fallback method to extract days directly from HTML when JSON parsing fails
+  private extractDaysDirectly(html: string, year: number, month: number): ForexEvent[] {
+    try {
+      const events: ForexEvent[] = [];
+      const dayBlockRegex = /"date":"[^"]+","dateline":(\d+),"[^"]*","events":\[([^\]]+)\]/g;
+      let match;
+      
+      while ((match = dayBlockRegex.exec(html)) !== null) {
+        const dayTimestamp = parseInt(match[1]) * 1000;
+        const dateObj = new Date(dayTimestamp);
+        
+        // Extract each event from the day's events JSON
+        const eventsString = match[2];
+        const eventMatches = eventsString.matchAll(/{[^}]+}/g);
+        
+        for (const eventMatch of eventMatches) {
+          try {
+            // Create a safer version of the event string for parsing
+            const eventStr = eventMatch[0]
+              .replace(/([{,])(\s*)([a-zA-Z0-9_]+)(\s*):/g, '$1"$3":') // Add quotes to keys
+              .replace(/'/g, '"')  // Replace single quotes with double quotes
+              .replace(/,\s*}/g, '}'); // Remove trailing commas
+            
+            const event = JSON.parse(eventStr);
+            
+            if (!event.currency || !event.name) continue;
+            
+            // Determine impact
+            let impact: 'high' | 'medium' | 'low' = 'low';
+            if (event.impactClass) {
+              if (event.impactClass.includes('red') || 
+                  (event.impactTitle && event.impactTitle.includes('High'))) {
+                impact = 'high';
+              } else if (event.impactClass.includes('orange') || 
+                         event.impactClass.includes('yel') || 
+                         (event.impactTitle && event.impactTitle.includes('Medium'))) {
+                impact = 'medium';
+              }
+            }
+            
+            // Format time
+            let eventTime = 'All Day';
+            if (event.timeLabel && !event.timeMasked) {
+              eventTime = event.timeLabel;
+            }
+            
+            events.push({
+              date: dateObj,
+              time: eventTime,
+              currency: event.currency,
+              impact: impact,
+              name: event.name,
+              forecast: event.forecast || '',
+              previous: event.previous || '',
+              actual: event.actual || undefined
+            });
+          } catch (e) {
+            console.error('Error parsing individual event:', e);
+          }
+        }
+      }
+      
+      console.log(`Extracted ${events.length} events using direct extraction`);
+      return events;
+    } catch (error) {
+      console.error('Error in direct extraction fallback:', error);
       return [];
     }
   }
@@ -423,4 +503,3 @@ forexFactoryService.setupPeriodicRefresh();
 
 // Re-export types for convenience
 export type { ForexEvent } from './types';
-
