@@ -19,8 +19,8 @@ class InvestingService {
   public async getEvents(year: number, month: number): Promise<InvestingEvent[]> {
     // Return cached data if available
     const cachedEvents = eventsCache.get(year, month);
-    if (cachedEvents) {
-      console.log(`Using cached data for ${year}-${month}`);
+    if (cachedEvents && cachedEvents.length > 0) {
+      console.log(`Using cached data for ${year}-${month+1} (${cachedEvents.length} events)`);
       return cachedEvents;
     }
     
@@ -31,13 +31,33 @@ class InvestingService {
       
       // Cache the results only if we got some events
       if (events && events.length > 0) {
+        console.log(`Caching ${events.length} events for ${year}-${month+1}`);
         eventsCache.set(year, month, events);
+      } else {
+        console.warn(`Not caching empty results for ${year}-${month+1}`);
       }
       
       return events;
     } catch (error) {
       console.error(`Error fetching economic events for ${year}-${month + 1}:`, error);
-      return [];
+      
+      // If the cache is empty and we failed to fetch, try to use cached mock data
+      // This helps prevent showing no data at all
+      const existingMockData = eventsCache.getMockData(year, month);
+      if (existingMockData && existingMockData.length > 0) {
+        console.log(`Using cached mock data for ${year}-${month+1} after fetch failure`);
+        return existingMockData;
+      }
+      
+      // If no cached mock data, generate new mock data through the fetcher
+      const mockData = await eventsFetcher.fetchEvents(year, month);
+      
+      // Cache the mock data with a special flag
+      if (mockData && mockData.length > 0) {
+        eventsCache.setMockData(year, month, mockData);
+      }
+      
+      return mockData;
     }
   }
   

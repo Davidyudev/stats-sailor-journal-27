@@ -13,7 +13,7 @@ import { useCalendarDates } from '@/hooks/useCalendarDates';
 import { useEconomicEvents } from '@/hooks/useEconomicEvents';
 import { useCalendarDetails } from '@/hooks/useCalendarDetails';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, AlertCircle, Info } from 'lucide-react';
+import { RefreshCw, AlertCircle, Info, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 import { Toaster } from 'sonner';
 
@@ -54,7 +54,8 @@ export const PerformanceCalendar = ({
     handleToggleImpact,
     handleToggleCurrency,
     handleSelectAllCurrencies,
-    isMockData
+    isMockData,
+    fetchError
   } = useEconomicEvents(currentMonth);
   
   const {
@@ -151,17 +152,21 @@ export const PerformanceCalendar = ({
           {isMockData && (
             <div className="mt-2 text-sm p-2 border-2 border-dashed border-warning rounded-md bg-warning/10">
               <p className="flex items-center">
-                <AlertCircle className="h-4 w-4 mr-2 text-warning" />
+                <AlertTriangle className="h-4 w-4 mr-2 text-warning" />
                 <span>
-                  The economic calendar is currently showing simulated data. This can happen due to:
+                  {fetchError || "The economic calendar is currently showing simulated data."}
                 </span>
               </p>
               <ul className="list-disc ml-8 mt-1 text-xs text-muted-foreground">
                 <li>CORS restrictions blocking access to Investing.com</li>
                 <li>Changes to the Investing.com website format</li>
                 <li>Temporary network problems</li>
+                <li>Browser security settings blocking cross-origin requests</li>
               </ul>
-              <p className="text-xs mt-2">Try clicking the Refresh button to fetch the most up-to-date data.</p>
+              <p className="text-xs mt-2">
+                Try clicking the Refresh button to fetch the most up-to-date data. The simulated data
+                is still useful for testing and demonstration purposes.
+              </p>
             </div>
           )}
         </div>

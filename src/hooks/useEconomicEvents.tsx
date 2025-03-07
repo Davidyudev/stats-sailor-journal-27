@@ -8,7 +8,8 @@ export const useEconomicEvents = (currentMonth: Date) => {
     isLoading,
     lastRefreshed,
     refreshEvents,
-    isMockData
+    isMockData,
+    fetchError
   } = useEventsFetching(currentMonth);
   
   // Use the filters hook for all filtering operations
@@ -38,6 +39,7 @@ export const useEconomicEvents = (currentMonth: Date) => {
     handleToggleImpact,
     handleToggleCurrency,
     handleSelectAllCurrencies,
-    isMockData
+    isMockData,
+    fetchError
   };
 };

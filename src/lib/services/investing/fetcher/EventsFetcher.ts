@@ -27,15 +27,82 @@ export class EventsFetcher {
       'https://corsproxy.io/?',
       'https://api.allorigins.win/raw?url=',
       'https://corsproxy.org/?',
-      'https://cors-anywhere.herokuapp.com/',
-      'https://cors.bridged.cc/',
-      'https://crossorigin.me/'
+      'https://thingproxy.freeboard.io/fetch/',
+      'https://api.codetabs.com/v1/proxy?quest='
     ];
     
     // Rotate through proxies
     const proxy = proxies[this.proxyIndex];
     this.proxyIndex = (this.proxyIndex + 1) % proxies.length;
     return proxy;
+  }
+  
+  // Try a simpler endpoint that's more likely to work
+  private async tryAlternativeApproach(year: number, month: number): Promise<InvestingEvent[]> {
+    try {
+      console.log('Trying alternative approach...');
+      // Instead of the POST endpoint, try the GET calendar page
+      const targetUrl = `https://www.investing.com/economic-calendar/`;
+      
+      // Try direct fetch first
+      try {
+        const response = await fetch(targetUrl, {
+          method: 'GET',
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+          },
+          signal: AbortSignal.timeout(8000)
+        });
+        
+        if (response.ok) {
+          const html = await response.text();
+          if (html && html.length > 1000) {
+            const extractedEvents = parseInvestingCalendarHTML(html, year, month);
+            if (extractedEvents.length > 0) {
+              console.log(`Direct fetch of main page successful! Got ${extractedEvents.length} events`);
+              return extractedEvents;
+            }
+          }
+        }
+      } catch (directError) {
+        console.warn('Direct fetch of main page failed:', directError);
+      }
+      
+      // Try with proxies
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          const proxy = this.getNextProxy();
+          const url = `${proxy}${encodeURIComponent(targetUrl)}`;
+          
+          console.log(`Alternative attempt ${attempt + 1}/3 with proxy: ${proxy}`);
+          
+          const response = await fetch(url, {
+            method: 'GET',
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+            },
+            signal: AbortSignal.timeout(8000)
+          });
+          
+          if (!response.ok) continue;
+          
+          const html = await response.text();
+          if (!html || html.length < 1000) continue;
+          
+          const extractedEvents = parseInvestingCalendarHTML(html, year, month);
+          if (extractedEvents.length > 0) {
+            console.log(`Alternative approach successful with ${extractedEvents.length} events!`);
+            return extractedEvents;
+          }
+        } catch (error) {
+          console.warn(`Alternative approach failed with attempt ${attempt + 1}:`, error);
+        }
+      }
+    } catch (error) {
+      console.error('All alternative approaches failed:', error);
+    }
+    
+    return [];
   }
   
   public async fetchEvents(year: number, month: number): Promise<InvestingEvent[]> {
@@ -64,130 +131,66 @@ export class EventsFetcher {
       let events: InvestingEvent[] = [];
       let success = false;
       
-      // Try direct fetch first (no proxy)
+      // Don't spend too much time trying - use a timeout for the whole operation
+      const timeoutPromise = new Promise<InvestingEvent[]>((_, reject) => {
+        setTimeout(() => reject(new Error('Overall timeout reached')), 15000);
+      });
+      
+      // Try alternative approach first (simpler GET request)
+      const alternativeEvents = await Promise.race([
+        this.tryAlternativeApproach(year, month),
+        timeoutPromise
+      ]).catch(() => [] as InvestingEvent[]);
+      
+      if (alternativeEvents.length > 0) {
+        this.isRefreshing = false;
+        this.failedAttempts = 0;
+        return alternativeEvents;
+      }
+      
+      // If alternative failed, try the original API approach but simplified
       try {
-        console.log('Attempting direct fetch without proxy...');
+        // Use current date filter instead of month filter
+        // This is more likely to have data available in the default view
+        console.log('Trying simplified API approach...');
         
-        const targetUrl = 'https://www.investing.com/economic-calendar/Service/getCalendarFilteredData';
+        // Use a much simpler approach - just get the current week's data
+        const targetUrl = 'https://www.investing.com/economic-calendar/';
         
-        const formData = new FormData();
-        formData.append('dateFrom', `${formattedMonth}/01/${year}`);
-        formData.append('dateTo', `${formattedMonth}/31/${year}`);
-        formData.append('timeZone', '0');
-        formData.append('timeFilter', 'timeRemain');
-        formData.append('currentTab', 'custom');
-        formData.append('limit_from', '0');
-        
-        const response = await fetch(targetUrl, {
-          method: 'POST',
-          headers: {
-            'Accept': 'text/html,application/xhtml+xml,application/xml',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-            'Referer': 'https://www.investing.com/economic-calendar/',
-            'X-Requested-With': 'XMLHttpRequest',
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'Origin': 'https://www.investing.com'
-          },
-          body: formData,
-          signal: AbortSignal.timeout(10000)
-        });
-        
-        if (response.ok) {
-          const html = await response.text();
-          if (html && html.length > 1000) {
-            console.log(`Direct fetch successful! Got ${html.length} bytes`);
-            const extractedEvents = parseInvestingCalendarHTML(html, year, month);
+        // Try with proxies
+        for (let attempt = 0; attempt < 3; attempt++) {
+          try {
+            const proxy = this.getNextProxy();
+            const url = `${proxy}${encodeURIComponent(targetUrl)}`;
             
+            console.log(`API simplified attempt ${attempt + 1}/3 with proxy: ${proxy}`);
+            
+            const response = await fetch(url, {
+              method: 'GET',
+              headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+              },
+              signal: AbortSignal.timeout(8000)
+            });
+            
+            if (!response.ok) continue;
+            
+            const html = await response.text();
+            if (!html || html.length < 1000) continue;
+            
+            const extractedEvents = parseInvestingCalendarHTML(html, year, month);
             if (extractedEvents.length > 0) {
               events = extractedEvents;
               success = true;
-              console.log(`Successfully fetched ${events.length} events directly`);
-            }
-          }
-        }
-      } catch (directError) {
-        console.warn('Direct fetch failed, will try proxies:', directError);
-      }
-      
-      // If direct fetch failed, try with proxies
-      if (!success) {
-        console.log('Direct fetch failed, trying with proxies...');
-        
-        // Try multiple times with different proxies
-        const maxAttempts = 4;
-        for (let attempt = 0; attempt < maxAttempts; attempt++) {
-          if (success) break;
-          
-          try {
-            const proxy = this.getNextProxy();
-            const targetUrl = `https://www.investing.com/economic-calendar/Service/getCalendarFilteredData`;
-            const url = `${proxy}${encodeURIComponent(targetUrl)}`;
-            
-            console.log(`Attempt ${attempt + 1}/${maxAttempts}: Fetching with proxy: ${proxy}`);
-            
-            // Use a POST request with form data as per the GitHub repo reference
-            const formData = new FormData();
-            formData.append('dateFrom', `${formattedMonth}/01/${year}`);
-            formData.append('dateTo', `${formattedMonth}/31/${year}`);
-            formData.append('timeZone', '0');
-            formData.append('timeFilter', 'timeRemain');
-            formData.append('currentTab', 'custom');
-            formData.append('limit_from', '0');
-            
-            const response = await fetch(url, {
-              method: 'POST',
-              headers: {
-                'Accept': 'text/html,application/xhtml+xml,application/xml',
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-                'Referer': 'https://www.investing.com/economic-calendar/',
-                'X-Requested-With': 'XMLHttpRequest'
-              },
-              body: formData,
-              signal: AbortSignal.timeout(12000)
-            });
-            
-            if (!response.ok) {
-              console.warn(`Proxy ${proxy} failed with status: ${response.status}`);
-              continue;
-            }
-            
-            const html = await response.text();
-            
-            if (!html || html.length < 1000) {
-              console.warn(`Proxy ${proxy} returned too little data (${html.length} bytes)`);
-              continue;
-            }
-            
-            console.log(`Got HTML (${html.length} bytes), extracting events...`);
-            
-            // Parse the HTML to extract events
-            const extractedEvents = parseInvestingCalendarHTML(html, year, month);
-            
-            if (extractedEvents.length === 0) {
-              console.warn(`No events extracted with proxy ${proxy}`);
-              continue;
-            }
-            
-            // Verify data quality
-            const hasHighImpact = extractedEvents.some(e => e.impact === 'high');
-            const hasMediumImpact = extractedEvents.some(e => e.impact === 'medium');
-            
-            if (!hasHighImpact && !hasMediumImpact) {
-              console.warn(`Data quality check failed with proxy ${proxy} - all events are low impact`);
-              // Instead of continuing, let's add some high impact events
-              events = addHighImpactEvents(extractedEvents, year, month);
-              success = true;
-              console.log(`Successfully fetched ${events.length} events with proxy ${proxy} (with added high impact events)`);
+              console.log(`Simplified API approach successful with ${events.length} events!`);
               break;
             }
-            
-            events = extractedEvents;
-            success = true;
-            console.log(`Successfully fetched ${events.length} events with proxy ${proxy}`);
           } catch (error) {
-            console.warn(`Error with attempt ${attempt + 1}/${maxAttempts}:`, error);
+            console.warn(`Simplified API approach failed with attempt ${attempt + 1}:`, error);
           }
         }
+      } catch (error) {
+        console.warn('Simplified API approach failed:', error);
       }
       
       this.isRefreshing = false;
@@ -195,7 +198,9 @@ export class EventsFetcher {
       if (!success) {
         this.failedAttempts++;
         console.log(`All fetching attempts failed, falling back to mock data. Attempt ${this.failedAttempts}/${this.maxFailedAttempts}`);
-        return this.generateMockEvents(year, month);
+        
+        // Generate high quality mock data since we're falling back
+        return this.generateEnhancedMockEvents(year, month);
       }
       
       this.failedAttempts = 0;
@@ -205,7 +210,7 @@ export class EventsFetcher {
       console.error("Critical error in fetchEvents:", error);
       this.isRefreshing = false;
       this.failedAttempts++;
-      return this.generateMockEvents(year, month);
+      return this.generateEnhancedMockEvents(year, month);
     }
   }
   
@@ -215,6 +220,40 @@ export class EventsFetcher {
     const random = new SeededRandom(seed);
     let events = generateMockEvents(year, month, random);
     events = addHighImpactEvents(events, year, month);
+    return events;
+  }
+  
+  private generateEnhancedMockEvents(year: number, month: number): InvestingEvent[] {
+    // Generate more realistic mock data with better coverage
+    console.log("Generating enhanced mock calendar data");
+    const seed = year * 100 + month;
+    const random = new SeededRandom(seed);
+    let events = generateMockEvents(year, month, random);
+    
+    // Add more high impact events spread throughout the month
+    events = addHighImpactEvents(events, year, month);
+    
+    // Make sure we have events for USD, EUR, GBP, JPY as these are important
+    const importantCurrencies = ['USD', 'EUR', 'GBP', 'JPY'];
+    importantCurrencies.forEach(currency => {
+      if (!events.some(e => e.currency === currency)) {
+        // Add at least one high impact event for this currency
+        const day = Math.floor(random.next() * 28) + 1;
+        const eventDate = new Date(year, month, day);
+        events.push({
+          id: `mock-${currency}-${day}`,
+          date: eventDate,
+          time: '12:30',
+          country: currency.toLowerCase(),
+          currency,
+          impact: 'high',
+          name: `${currency} Mock Economic Report`,
+          forecast: `${(random.next() * 10).toFixed(1)}%`,
+          previous: `${(random.next() * 10).toFixed(1)}%`,
+        });
+      }
+    });
+    
     return events;
   }
   
