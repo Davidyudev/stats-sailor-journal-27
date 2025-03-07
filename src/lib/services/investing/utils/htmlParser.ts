@@ -18,7 +18,7 @@ export function parseInvestingCalendarHTML(html: string, year: number, month: nu
       'table.economicCalendarTable tr:not(.theDay)'
     ];
     
-    let eventRows: cheerio.Cheerio;
+    let eventRows: cheerio.Cheerio<cheerio.Node>;
     for (const selector of eventSelectors) {
       eventRows = $(selector);
       if (eventRows.length > 0) {
