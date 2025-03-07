@@ -67,10 +67,12 @@ export const DurationPerformanceChart = ({ trades, className }: DurationPerforma
           <h3 className="text-lg font-medium">Trade Duration vs P/L</h3>
         </div>
         
-        <div className="h-72 w-full"> {/* Increased height from 64 to 72 */}
+        {/* Increased height from 64 to 72 */}
+        <div className="h-72 w-full">
           <ResponsiveContainer width="100%" height="100%">
             <ScatterChart
-              margin={{ top: 20, right: 30, bottom: 60, left: 30 }} {/* Increased bottom margin to prevent overlap */}
+              /* Increased bottom margin to prevent overlap */
+              margin={{ top: 20, right: 30, bottom: 60, left: 30 }}
             >
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--chart-grid))" />
               <XAxis 
@@ -83,7 +85,8 @@ export const DurationPerformanceChart = ({ trades, className }: DurationPerforma
                 label={{ 
                   value: 'Duration (hours)', 
                   position: 'insideBottom', 
-                  offset: -35,  /* Increased offset to prevent overlap */
+                  /* Increased offset to prevent overlap */
+                  offset: -35,
                   style: { textAnchor: 'middle' }
                 }}
               />
