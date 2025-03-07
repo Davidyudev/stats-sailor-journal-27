@@ -4,7 +4,7 @@ import { format, isSameDay, isSameMonth } from 'date-fns';
 import { AlertTriangle, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { DailyPerformance } from '@/lib/types';
-import { ForexEvent } from '@/lib/services/forexFactoryService';
+import { ForexEvent } from '@/lib/services/investingService';
 
 interface CalendarCellProps {
   day: Date;

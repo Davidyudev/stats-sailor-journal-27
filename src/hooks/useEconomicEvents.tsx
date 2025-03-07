@@ -1,7 +1,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { getMonth, getYear } from 'date-fns';
-import { forexFactoryService, ForexEvent } from '@/lib/services/forexFactoryService';
+import { investingService, ForexEvent } from '@/lib/services/investingService';
 import { toast } from "sonner";
 
 export const useEconomicEvents = (currentMonth: Date) => {
@@ -35,7 +35,7 @@ export const useEconomicEvents = (currentMonth: Date) => {
       console.log(`Fetching economic events for ${year}-${month + 1}`);
       
       // Try to get events
-      const events = await forexFactoryService.getEvents(year, month);
+      const events = await investingService.getEvents(year, month);
       
       console.log(`Received ${events.length} events`);
       
@@ -48,7 +48,7 @@ export const useEconomicEvents = (currentMonth: Date) => {
         setIsMockData(true);
       } else {
         setIsMockData(false);
-        console.log("Using real data from Forex Factory");
+        console.log("Using real data from Investing.com");
       }
       
       setEconomicEvents(events);
@@ -99,10 +99,10 @@ export const useEconomicEvents = (currentMonth: Date) => {
       const wasMockData = isMockData;
       
       // Clear cache and force refresh
-      forexFactoryService.clearCache(year, month);
+      investingService.clearCache(year, month);
       
       // Force refresh by fetching again
-      const events = await forexFactoryService.getEvents(year, month);
+      const events = await investingService.getEvents(year, month);
       
       // Check for data quality issues
       const hasHighImpact = events.some(e => e.impact === 'high');

@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { ForexEvent } from '@/lib/services/forexFactoryService';
+import { ForexEvent } from '@/lib/services/investingService';
 import { Card, CardContent } from '@/components/ui/card';
 import { EventItem } from './EventItem';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";

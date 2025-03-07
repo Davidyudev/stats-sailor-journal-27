@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { cn } from '@/lib/utils';
-import { ForexEvent } from '@/lib/services/forexFactoryService';
+import { ForexEvent } from '@/lib/services/investingService';
 
 interface EventItemProps {
   event: ForexEvent;

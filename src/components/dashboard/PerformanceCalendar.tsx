@@ -104,7 +104,7 @@ export const PerformanceCalendar = ({
               <div className="flex items-center gap-2">
                 {isMockData && (
                   <div className="flex items-center text-xs text-warning">
-                    <AlertCircle className="h-3 w-3 mr-1" />
+                    <AlertCircle className="h-3.5 w-3.5 mr-1" />
                     <span>Using simulated data - click Refresh to try again</span>
                   </div>
                 )}
@@ -135,9 +135,21 @@ export const PerformanceCalendar = ({
           
           <CalendarLegend />
           
+          {/* Data source info */}
+          <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground">
+            <span>Economic calendar data source: Investing.com</span>
+            
+            {isMockData && (
+              <div className="flex items-center text-warning">
+                <AlertCircle className="h-3.5 w-3.5 mr-1" />
+                <span>Calendar showing simulated data due to connection issues</span>
+              </div>
+            )}
+          </div>
+          
           {/* Data quality information */}
           {isMockData && (
-            <div className="mt-4 text-sm p-2 border-2 border-dashed border-warning rounded-md bg-warning/10">
+            <div className="mt-2 text-sm p-2 border-2 border-dashed border-warning rounded-md bg-warning/10">
               <p className="flex items-center">
                 <AlertCircle className="h-4 w-4 mr-2 text-warning" />
                 <span>
@@ -145,8 +157,8 @@ export const PerformanceCalendar = ({
                 </span>
               </p>
               <ul className="list-disc ml-8 mt-1 text-xs text-muted-foreground">
-                <li>Server connectivity issues</li>
-                <li>Changes to the Forex Factory website format</li>
+                <li>CORS restrictions blocking access to Investing.com</li>
+                <li>Changes to the Investing.com website format</li>
                 <li>Temporary network problems</li>
               </ul>
               <p className="text-xs mt-2">Try clicking the Refresh button to fetch the most up-to-date data.</p>

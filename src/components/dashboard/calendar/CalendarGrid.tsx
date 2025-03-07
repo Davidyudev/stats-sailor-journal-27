@@ -2,7 +2,7 @@
 import React from 'react';
 import { startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, format } from 'date-fns';
 import { DailyPerformance } from '@/lib/types';
-import { ForexEvent } from '@/lib/services/forexFactoryService';
+import { ForexEvent } from '@/lib/services/investingService';
 import { CalendarCell } from './CalendarCell';
 
 interface CalendarGridProps {
