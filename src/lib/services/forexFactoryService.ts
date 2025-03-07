@@ -11,6 +11,41 @@ export interface ForexEvent {
   previous?: string;
 }
 
+// Simple seeded random number generator for consistent results
+class SeededRandom {
+  private seed: number;
+
+  constructor(seed: number) {
+    this.seed = seed;
+  }
+
+  // Generate a random number between 0 and 1 (similar to Math.random())
+  next(): number {
+    const x = Math.sin(this.seed++) * 10000;
+    return x - Math.floor(x);
+  }
+
+  // Generate a random integer between min and max (inclusive)
+  nextInt(min: number, max: number): number {
+    return Math.floor(this.next() * (max - min + 1)) + min;
+  }
+
+  // Generate a random floating point number between min and max
+  nextFloat(min: number, max: number): number {
+    return this.next() * (max - min) + min;
+  }
+
+  // Return a random element from an array
+  choose<T>(array: T[]): T {
+    return array[Math.floor(this.next() * array.length)];
+  }
+
+  // Return true with the given probability (0-1)
+  chance(probability: number): boolean {
+    return this.next() < probability;
+  }
+}
+
 class ForexFactoryService {
   private static instance: ForexFactoryService;
   private cachedEvents: Record<string, ForexEvent[]> = {};
@@ -36,7 +71,7 @@ class ForexFactoryService {
     // Simulate API call delay
     await new Promise(resolve => setTimeout(resolve, 500));
     
-    // Generate mock data for the specified month
+    // Generate mock data for the specified month - using a seed based on year and month
     const events: ForexEvent[] = this.generateMockEventsForMonth(year, month);
     
     // Cache the results
@@ -48,6 +83,12 @@ class ForexFactoryService {
   private generateMockEventsForMonth(year: number, month: number): ForexEvent[] {
     const events: ForexEvent[] = [];
     const daysInMonth = new Date(year, month + 1, 0).getDate();
+    
+    // Create a seeded random generator with a seed based on year and month
+    // This ensures the same events are generated for the same month and year
+    const seed = year * 100 + month;
+    const random = new SeededRandom(seed);
+    
     const currencies = ['USD', 'EUR', 'GBP', 'JPY', 'AUD', 'CAD', 'CHF', 'NZD'];
     const highImpactEvents = [
       'Interest Rate Decision', 
@@ -80,33 +121,33 @@ class ForexFactoryService {
       // Skip weekends for most events
       if (dayOfWeek === 0 || dayOfWeek === 6) {
         // Only low impact on weekends, and rarely
-        if (Math.random() > 0.8) {
-          const currency = currencies[Math.floor(Math.random() * currencies.length)];
-          const eventName = lowImpactEvents[Math.floor(Math.random() * lowImpactEvents.length)];
+        if (random.chance(0.2)) {
+          const currency = random.choose(currencies);
+          const eventName = random.choose(lowImpactEvents);
           
           events.push({
             date: new Date(year, month, day),
-            time: `${Math.floor(Math.random() * 12) + 1}:${Math.random() > 0.5 ? '30' : '00'} ${Math.random() > 0.5 ? 'AM' : 'PM'}`,
+            time: `${random.nextInt(1, 12)}:${random.chance(0.5) ? '30' : '00'} ${random.chance(0.5) ? 'AM' : 'PM'}`,
             currency,
             impact: 'low',
             name: `${currency} ${eventName}`,
-            actual: Math.random() > 0.5 ? `${(Math.random() * 5 - 2.5).toFixed(1)}%` : undefined,
-            forecast: `${(Math.random() * 2 - 1).toFixed(1)}%`,
-            previous: `${(Math.random() * 2 - 1).toFixed(1)}%`
+            actual: random.chance(0.5) ? `${(random.nextFloat(-2.5, 2.5)).toFixed(1)}%` : undefined,
+            forecast: `${(random.nextFloat(-1, 1)).toFixed(1)}%`,
+            previous: `${(random.nextFloat(-1, 1)).toFixed(1)}%`
           });
         }
         continue;
       }
       
       // Add 0-3 events per weekday
-      const numEvents = Math.floor(Math.random() * 4);
+      const numEvents = random.nextInt(0, 3);
       
       for (let i = 0; i < numEvents; i++) {
-        const currency = currencies[Math.floor(Math.random() * currencies.length)];
+        const currency = random.choose(currencies);
         
         // Determine impact level - weight toward medium with some high and few low
         let impact: 'high' | 'medium' | 'low';
-        const impactRoll = Math.random();
+        const impactRoll = random.next();
         
         if (impactRoll > 0.8) {
           impact = 'high';
@@ -119,22 +160,22 @@ class ForexFactoryService {
         // Select event name based on impact
         let eventName;
         if (impact === 'high') {
-          eventName = highImpactEvents[Math.floor(Math.random() * highImpactEvents.length)];
+          eventName = random.choose(highImpactEvents);
         } else if (impact === 'medium') {
-          eventName = mediumImpactEvents[Math.floor(Math.random() * mediumImpactEvents.length)];
+          eventName = random.choose(mediumImpactEvents);
         } else {
-          eventName = lowImpactEvents[Math.floor(Math.random() * lowImpactEvents.length)];
+          eventName = random.choose(lowImpactEvents);
         }
         
         events.push({
           date: new Date(year, month, day),
-          time: `${Math.floor(Math.random() * 12) + 1}:${Math.random() > 0.5 ? '30' : '00'} ${Math.random() > 0.5 ? 'AM' : 'PM'}`,
+          time: `${random.nextInt(1, 12)}:${random.chance(0.5) ? '30' : '00'} ${random.chance(0.5) ? 'AM' : 'PM'}`,
           currency,
           impact,
           name: `${currency} ${eventName}`,
-          actual: Math.random() > 0.5 ? `${(Math.random() * 5 - 2.5).toFixed(1)}%` : undefined,
-          forecast: `${(Math.random() * 2 - 1).toFixed(1)}%`,
-          previous: `${(Math.random() * 2 - 1).toFixed(1)}%`
+          actual: random.chance(0.5) ? `${(random.nextFloat(-2.5, 2.5)).toFixed(1)}%` : undefined,
+          forecast: `${(random.nextFloat(-1, 1)).toFixed(1)}%`,
+          previous: `${(random.nextFloat(-1, 1)).toFixed(1)}%`
         });
       }
     }
@@ -151,22 +192,22 @@ class ForexFactoryService {
       currency: 'USD',
       impact: 'high',
       name: 'USD Non-Farm Payrolls',
-      actual: Math.random() > 0.5 ? `${Math.floor(Math.random() * 300 + 100)}K` : undefined,
-      forecast: `${Math.floor(Math.random() * 200 + 150)}K`,
-      previous: `${Math.floor(Math.random() * 200 + 150)}K`
+      actual: random.chance(0.5) ? `${random.nextInt(100, 400)}K` : undefined,
+      forecast: `${random.nextInt(150, 350)}K`,
+      previous: `${random.nextInt(150, 350)}K`
     });
     
     // Central bank meetings - usually mid-month
-    const fedMeetingDay = Math.floor(daysInMonth / 2) + Math.floor(Math.random() * 5) - 2;
+    const fedMeetingDay = Math.floor(daysInMonth / 2) + random.nextInt(-2, 2);
     events.push({
       date: new Date(year, month, fedMeetingDay),
       time: '2:00 PM',
       currency: 'USD',
       impact: 'high',
       name: 'USD FOMC Statement & Federal Funds Rate',
-      actual: Math.random() > 0.5 ? `${(Math.random() * 2 + 3).toFixed(2)}%` : undefined,
-      forecast: `${(Math.random() * 2 + 3).toFixed(2)}%`,
-      previous: `${(Math.random() * 2 + 3).toFixed(2)}%`
+      actual: random.chance(0.5) ? `${(random.nextFloat(3, 5)).toFixed(2)}%` : undefined,
+      forecast: `${(random.nextFloat(3, 5)).toFixed(2)}%`,
+      previous: `${(random.nextFloat(3, 5)).toFixed(2)}%`
     });
     
     return events;
