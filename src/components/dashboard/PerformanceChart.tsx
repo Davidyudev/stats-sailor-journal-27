@@ -53,8 +53,11 @@ export const PerformanceChart = ({ data, className }: PerformanceChartProps) => 
   }, [data, timePeriod]);
 
   const chartData = useMemo(() => {
+    // Make sure we sort the data by date first to ensure proper accumulation
+    const sortedData = [...filteredData].sort((a, b) => a.date.getTime() - b.date.getTime());
+    
     let accumulated = 0;
-    return filteredData.map(item => {
+    return sortedData.map(item => {
       accumulated += item.profitLoss;
       return {
         date: item.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
