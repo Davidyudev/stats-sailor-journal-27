@@ -18,7 +18,7 @@ export function parseInvestingCalendarHTML(html: string, year: number, month: nu
       'table.economicCalendarTable tr:not(.theDay)'
     ];
     
-    let eventRows: cheerio.Cheerio<cheerio.Element>;
+    let eventRows: cheerio.Cheerio;
     for (const selector of eventSelectors) {
       eventRows = $(selector);
       if (eventRows.length > 0) {
@@ -30,7 +30,7 @@ export function parseInvestingCalendarHTML(html: string, year: number, month: nu
     // If we still don't have events, try a more generic approach
     if (!eventRows || eventRows.length === 0) {
       // Try to find any table rows that might contain event data
-      eventRows = $('table tr').filter(function(this: cheerio.Element, _, el) {
+      eventRows = $('table tr').filter(function(this: any, _, el) {
         const $el = $(el);
         // Look for rows with multiple cells and some data attributes
         return $el.find('td').length >= 4 && 
