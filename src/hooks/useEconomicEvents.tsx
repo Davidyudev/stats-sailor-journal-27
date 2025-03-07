@@ -31,7 +31,7 @@ export const useEconomicEvents = (currentMonth: Date) => {
         setEconomicEvents(events);
         
         // Extract unique currencies
-        const currencies = [...new Set(events.map(event => event.currency))];
+        const currencies = [...new Set(events.map(event => event.currency))].sort();
         setAvailableCurrencies(currencies);
         
         // Initialize selected currencies

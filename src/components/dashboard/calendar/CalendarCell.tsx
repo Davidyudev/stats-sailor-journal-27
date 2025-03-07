@@ -30,6 +30,9 @@ export const CalendarCell = ({
 }: CalendarCellProps) => {
   // Filter to only show high impact events in the calendar view
   const highImpactEvents = events.filter(e => e.impact === 'high');
+  
+  // Get unique currencies from high impact events
+  const uniqueHighImpactCurrencies = [...new Set(highImpactEvents.map(e => e.currency))];
 
   return (
     <div
@@ -76,28 +79,17 @@ export const CalendarCell = ({
       )}
       
       <div className="mt-auto">
-        {highImpactEvents.length > 0 && (
-          <div className="space-y-0.5">
-            {highImpactEvents
-              .slice(0, 2) // Only show the top 2 high impact events to avoid cluttering
-              .map((event, idx) => (
-                <div 
-                  key={idx} 
-                  className="text-[10px] truncate flex items-center gap-1" 
-                  title={`${event.currency} ${event.name} at ${event.time}`}
-                >
-                  <span className="inline-block w-1.5 h-1.5 rounded-full flex-shrink-0 bg-destructive" />
-                  <span className="font-medium text-[10px]">{event.currency}</span>
-                  <span className="truncate text-[10px]">
-                    {event.name.substring(0, 12)}
-                  </span>
-                </div>
-              ))}
-            {highImpactEvents.length > 2 && (
-              <div className="text-[10px] text-muted-foreground">
-                +{highImpactEvents.length - 2} more high impact events
-              </div>
-            )}
+        {uniqueHighImpactCurrencies.length > 0 && (
+          <div className="flex flex-wrap gap-1 mt-1">
+            {uniqueHighImpactCurrencies.map((currency) => (
+              <span 
+                key={currency}
+                className="inline-flex items-center rounded text-xs font-medium bg-destructive/10 text-destructive px-1.5 py-0.5"
+                title={`High impact ${currency} news`}
+              >
+                {currency}
+              </span>
+            ))}
           </div>
         )}
         
