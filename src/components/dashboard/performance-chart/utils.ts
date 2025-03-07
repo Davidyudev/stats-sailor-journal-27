@@ -30,19 +30,15 @@ export const prepareChartData = (filteredData: DailyPerformance[]) => {
   // Make sure we sort the data by date first to ensure proper accumulation
   const sortedData = [...filteredData].sort((a, b) => a.date.getTime() - b.date.getTime());
   
-  // Always create an initial zero point data entry
   const result = [];
   
-  // Add a starting point with 0 value regardless of data presence
-  // This ensures the chart always starts from 0
+  // Always add a starting zero point at the beginning
   if (sortedData.length > 0) {
-    const firstDay = sortedData[0];
-    // Add a data point for the day before the first day to start accumulation at 0
-    const startDate = new Date(firstDay.date);
-    startDate.setDate(startDate.getDate() - 1);
+    const firstDate = new Date(sortedData[0].date);
+    firstDate.setDate(firstDate.getDate() - 1); // Day before first day
     
     result.push({
-      date: startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      date: firstDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
       profit: 0,
       accumulatedProfit: 0,
       trades: 0,
@@ -50,6 +46,7 @@ export const prepareChartData = (filteredData: DailyPerformance[]) => {
     });
   }
   
+  // Calculate accumulated value starting from zero
   let accumulated = 0;
   sortedData.forEach(item => {
     accumulated += item.profitLoss;

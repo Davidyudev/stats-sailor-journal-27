@@ -59,7 +59,7 @@ export const ChartComponent = ({ data }: ChartComponentProps) => {
             tickLine={false}
             stroke="#0EA5E9"
             tickFormatter={(value) => `${value}`}
-            domain={['auto', 'auto']}
+            domain={[0, 'auto']}
             label={{ 
               value: 'Accumulated', 
               angle: 90, 
