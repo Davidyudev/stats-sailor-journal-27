@@ -12,6 +12,9 @@ import { CalendarDayDetails } from './CalendarDayDetails';
 import { useCalendarDates } from '@/hooks/useCalendarDates';
 import { useEconomicEvents } from '@/hooks/useEconomicEvents';
 import { useCalendarDetails } from '@/hooks/useCalendarDetails';
+import { Button } from '@/components/ui/button';
+import { RefreshCw } from 'lucide-react';
+import { format } from 'date-fns';
 
 interface PerformanceCalendarProps {
   data: DailyPerformance[];
@@ -40,6 +43,8 @@ export const PerformanceCalendar = ({
   const {
     filteredEvents,
     isLoading,
+    lastRefreshed,
+    refreshEvents,
     impactFilters,
     currencyFilter,
     setCurrencyFilter,
@@ -68,19 +73,37 @@ export const PerformanceCalendar = ({
   return (
     <MountTransition delay={300} className={cn("glass-card rounded-lg", className)}>
       <div className="p-4">
-        <div className="flex justify-between items-center mb-4">
+        <div className="flex justify-between items-start mb-4">
           <h3 className="text-lg font-medium">Trading Calendar</h3>
-          <CalendarFilters 
-            impactFilters={impactFilters}
-            handleToggleImpact={handleToggleImpact}
-            currencyFilter={currencyFilter}
-            setCurrencyFilter={setCurrencyFilter}
-            availableCurrencies={availableCurrencies}
-            selectedCurrencies={selectedCurrencies}
-            handleToggleCurrency={handleToggleCurrency}
-            handleSelectAllCurrencies={handleSelectAllCurrencies}
-            goToToday={goToToday}
-          />
+          <div className="flex flex-col items-end">
+            <div className="flex items-center gap-2 mb-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={refreshEvents} 
+                disabled={isLoading}
+              >
+                <RefreshCw className={cn("h-4 w-4 mr-1", isLoading && "animate-spin")} />
+                Refresh
+              </Button>
+              <CalendarFilters 
+                impactFilters={impactFilters}
+                handleToggleImpact={handleToggleImpact}
+                currencyFilter={currencyFilter}
+                setCurrencyFilter={setCurrencyFilter}
+                availableCurrencies={availableCurrencies}
+                selectedCurrencies={selectedCurrencies}
+                handleToggleCurrency={handleToggleCurrency}
+                handleSelectAllCurrencies={handleSelectAllCurrencies}
+                goToToday={goToToday}
+              />
+            </div>
+            {lastRefreshed && (
+              <span className="text-xs text-muted-foreground">
+                Last updated: {format(lastRefreshed, 'MMM d, yyyy h:mm a')}
+              </span>
+            )}
+          </div>
         </div>
         
         <CalendarHeader 

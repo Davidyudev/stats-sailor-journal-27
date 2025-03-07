@@ -8,6 +8,7 @@ export const useEconomicEvents = (currentMonth: Date) => {
   const [economicEvents, setEconomicEvents] = useState<ForexEvent[]>([]);
   const [filteredEvents, setFilteredEvents] = useState<ForexEvent[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
   
   // Filters
   const [impactFilters, setImpactFilters] = useState({
@@ -30,6 +31,7 @@ export const useEconomicEvents = (currentMonth: Date) => {
           getMonth(currentMonth)
         );
         setEconomicEvents(events);
+        setLastRefreshed(new Date());
         
         // Extract unique currencies
         const currencies = [...new Set(events.map(event => event.currency))].sort();
@@ -44,7 +46,7 @@ export const useEconomicEvents = (currentMonth: Date) => {
         
       } catch (error) {
         console.error('Failed to fetch economic events:', error);
-        toast.error('Failed to load economic calendar data');
+        toast.error('Failed to load economic calendar data. Using fallback data.');
       } finally {
         setIsLoading(false);
       }
@@ -52,6 +54,28 @@ export const useEconomicEvents = (currentMonth: Date) => {
 
     fetchEconomicEvents();
   }, [currentMonth]);
+  
+  // Manual refresh function
+  const refreshEvents = async () => {
+    setIsLoading(true);
+    try {
+      // Clear cache for current month to force refresh
+      const year = getYear(currentMonth);
+      const month = getMonth(currentMonth);
+      
+      // Force refresh by fetching again
+      const events = await forexFactoryService.getEvents(year, month);
+      setEconomicEvents(events);
+      setLastRefreshed(new Date());
+      
+      toast.success('Economic calendar data refreshed');
+    } catch (error) {
+      console.error('Failed to refresh economic events:', error);
+      toast.error('Failed to refresh calendar data');
+    } finally {
+      setIsLoading(false);
+    }
+  };
   
   // Filter events based on selected filters
   useEffect(() => {
@@ -104,6 +128,8 @@ export const useEconomicEvents = (currentMonth: Date) => {
     economicEvents,
     filteredEvents,
     isLoading,
+    lastRefreshed,
+    refreshEvents,
     impactFilters,
     currencyFilter,
     setCurrencyFilter,
