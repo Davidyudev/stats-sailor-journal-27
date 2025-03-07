@@ -2,6 +2,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { getMonth, getYear } from 'date-fns';
 import { investingService, ForexEvent } from '@/lib/services/investingService';
+import { checkDataQuality } from '@/lib/services/investing/utils/dataQualityChecker';
 import { toast } from "sonner";
 
 export const useEventsFetching = (currentMonth: Date) => {
@@ -36,19 +37,13 @@ export const useEventsFetching = (currentMonth: Date) => {
       
       console.log(`Received ${events.length} events`);
       
-      // Check for data quality
-      const hasHighImpact = events.some(e => e.impact === 'high');
-      const hasMediumImpact = events.some(e => e.impact === 'medium');
-      const hasEvents = events.length > 0;
+      // Check data quality using the extracted utility function
+      const { isValidData, errorMessage } = checkDataQuality(events);
       
-      if (!hasEvents) {
-        console.log("Data quality check failed - no events received");
+      if (!isValidData) {
+        console.log(`Data quality check failed - ${errorMessage}`);
         setIsMockData(true);
-        setFetchError("No events could be retrieved");
-      } else if (!hasHighImpact && !hasMediumImpact) {
-        console.log("Data quality check failed - all low impact events");
-        setIsMockData(true);
-        setFetchError("Only low-impact events found, data may be incomplete");
+        setFetchError(errorMessage);
       } else {
         setIsMockData(false);
         setFetchError(null);
@@ -102,20 +97,14 @@ export const useEventsFetching = (currentMonth: Date) => {
       // Race between actual fetch and timeout
       const events = await Promise.race([fetchPromise, timeoutPromise]);
       
-      // Check for data quality issues
-      const hasHighImpact = events.some(e => e.impact === 'high');
-      const hasMediumImpact = events.some(e => e.impact === 'medium');
+      // Check data quality using the extracted utility function
+      const { isValidData, errorMessage } = checkDataQuality(events);
       
-      if (events.length === 0) {
-        console.log("Refresh data quality check failed - no events received");
+      if (!isValidData) {
+        console.log(`Refresh data quality check failed - ${errorMessage}`);
         setIsMockData(true);
-        setFetchError("No events found");
-        toast.warning('No calendar data found. Using fallback data.');
-      } else if (!hasHighImpact && !hasMediumImpact) {
-        console.log("Refresh data quality check failed - no high/medium impact events");
-        setIsMockData(true);
-        setFetchError("Only low-impact events found, data may be incomplete");
-        toast.warning('Calendar data may be incomplete. Using enhanced fallback data.');
+        setFetchError(errorMessage);
+        toast.warning(`${errorMessage}. Using fallback data.`);
       } else {
         setIsMockData(false);
         setFetchError(null);
