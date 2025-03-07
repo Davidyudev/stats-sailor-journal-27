@@ -1,16 +1,27 @@
+
 import { ForexEvent } from '../types';
+import * as cheerio from 'cheerio';
 
 // Extract calendar data from the Forex Factory page
 export function extractCalendarData(html: string, year: number, month: number): ForexEvent[] {
   try {
+    console.log("Extracting calendar data...");
+    
     // First try to get calendar data from embedded JSON
     let events = extractFromEmbeddedJSON(html, year, month);
     
     // If that fails, try direct HTML extraction
     if (events.length === 0) {
+      console.log("JSON extraction failed, trying HTML extraction...");
       events = extractFromHTMLDirectly(html, year, month);
     }
     
+    if (events.length === 0) {
+      console.log("HTML extraction failed, trying Cheerio extraction...");
+      events = extractWithCheerio(html, year, month);
+    }
+    
+    console.log(`Extracted ${events.length} events in total`);
     return events;
   } catch (error) {
     console.error('Error extracting calendar data:', error);
@@ -25,7 +36,8 @@ function extractFromEmbeddedJSON(html: string, year: number, month: number): For
     const patterns = [
       /window\.calendarComponentStates\[\d+\]\s*=\s*({[\s\S]*?days:.*?\[.*?\].*?});/,
       /var\s+calendarJson\s*=\s*({[\s\S]*?days:.*?\[.*?\].*?});/,
-      /"calendar":\s*({[\s\S]*?days:.*?\[.*?\].*?})/
+      /"calendar":\s*({[\s\S]*?days:.*?\[.*?\].*?})/,
+      /window\.FF\s*=\s*{[\s\S]*?calendarComponentStates\[\d+\]\s*=\s*({[\s\S]*?days:.*?\[.*?\].*?});/
     ];
     
     let calendarData = null;
@@ -34,28 +46,53 @@ function extractFromEmbeddedJSON(html: string, year: number, month: number): For
       const match = html.match(pattern);
       if (match && match[1]) {
         try {
-          // Clean JSON string
-          const jsonText = match[1].replace(/\\'/g, "'")
-                                  .replace(/\\"/g, '"')
-                                  .replace(/new Date\([^)]+\)/g, '"__date__"')
-                                  .replace(/,\s*}/g, '}')
-                                  .replace(/,\s*]/g, ']');
-                                  
-          calendarData = JSON.parse(jsonText, (key, value) => {
-            if (value === "__date__") return null;
-            return value;
-          });
+          console.log(`Found calendar data using pattern: ${pattern}`);
           
-          if (calendarData && calendarData.days) {
-            break; // Successfully extracted data
+          // Clean JSON string and handle special cases
+          let jsonText = match[1];
+          
+          // Handle various JSON format issues
+          jsonText = jsonText.replace(/\\'/g, "'")
+                            .replace(/\\"/g, '"')
+                            .replace(/new Date\([^)]+\)/g, '"__date__"')
+                            .replace(/,\s*}/g, '}')
+                            .replace(/,\s*]/g, ']')
+                            .replace(/([{,])\s*(\w+):/g, '$1"$2":'); // Convert property names to quoted strings
+                            
+          try {
+            calendarData = JSON.parse(jsonText, (key, value) => {
+              if (value === "__date__") return null;
+              return value;
+            });
+            
+            if (calendarData && calendarData.days) {
+              console.log(`Successfully parsed calendar data with ${calendarData.days.length} days`);
+              break; // Successfully extracted data
+            }
+          } catch (jsonError) {
+            console.warn('Failed to parse calendar data JSON:', jsonError);
+            // Try a more lenient approach by using eval (but safely with Function)
+            try {
+              console.log("Trying alternative JSON parsing method...");
+              // This is a controlled environment with our own input, so this is safe
+              calendarData = Function(`"use strict"; return (${jsonText})`)();
+              
+              if (calendarData && calendarData.days) {
+                console.log(`Successfully parsed calendar data with alternative method: ${calendarData.days.length} days`);
+                break;
+              }
+            } catch (evalError) {
+              console.warn('Alternative parsing also failed:', evalError);
+            }
           }
         } catch (e) {
-          console.warn('Failed to parse with pattern, trying next:', e);
+          console.warn('Failed with pattern, trying next:', e);
         }
       }
     }
     
     if (!calendarData || !calendarData.days) {
+      console.log("Could not extract or parse calendar JSON data");
       return [];
     }
     
@@ -74,6 +111,8 @@ function processCalendarData(calendarData: any, year: number, month: number): Fo
     console.warn('Calendar days is not an array');
     return [];
   }
+  
+  console.log(`Processing ${calendarData.days.length} days from calendar data`);
   
   calendarData.days.forEach((day: any) => {
     if (!day.events || !Array.isArray(day.events)) {
@@ -241,6 +280,89 @@ function extractFromHTMLDirectly(html: string, year: number, month: number): For
     return events;
   } catch (error) {
     console.error('Error in direct HTML extraction:', error);
+    return [];
+  }
+}
+
+// New extraction method using Cheerio
+function extractWithCheerio(html: string, year: number, month: number): ForexEvent[] {
+  try {
+    const events: ForexEvent[] = [];
+    const $ = cheerio.load(html);
+    
+    console.log("Using Cheerio to extract calendar data");
+    
+    // Find the table with calendar data
+    const calendarRows = $('tr.calendar_row, tr.calendar__row');
+    console.log(`Found ${calendarRows.length} potential calendar rows with Cheerio`);
+    
+    let currentDate: Date | null = null;
+    
+    calendarRows.each((_, row) => {
+      // Check for date cell
+      const dateCell = $(row).find('td.calendar__date, td.date');
+      if (dateCell.length > 0) {
+        const dateText = dateCell.text().trim();
+        const dayMatch = dateText.match(/\d+/);
+        if (dayMatch) {
+          const day = parseInt(dayMatch[0], 10);
+          currentDate = new Date(year, month, day);
+        }
+      }
+      
+      if (!currentDate) return;
+      
+      // Get currency
+      const currency = $(row).find('td.calendar__currency, td.currency').text().trim();
+      if (!currency) return;
+      
+      // Get event name
+      const eventName = $(row).find('td.calendar__event, td.event').text().trim();
+      if (!eventName) return;
+      
+      // Determine impact
+      let impact: 'high' | 'medium' | 'low' = 'low';
+      const impactCell = $(row).find('td.calendar__impact, td.impact');
+      const impactHtml = impactCell.html() || '';
+      
+      if (impactHtml.includes('red') || impactHtml.includes('high')) {
+        impact = 'high';
+      } else if (impactHtml.includes('orange') || impactHtml.includes('yellow') || impactHtml.includes('medium')) {
+        impact = 'medium';
+      }
+      
+      // Get time
+      let time = 'All Day';
+      const timeText = $(row).find('td.calendar__time, td.time').text().trim();
+      if (timeText && timeText !== '&nbsp;') {
+        time = timeText;
+      }
+      
+      // Get forecast, previous, and actual values
+      const forecast = $(row).find('td.calendar__forecast, td.forecast').text().trim();
+      const previous = $(row).find('td.calendar__previous, td.previous').text().trim();
+      const actualText = $(row).find('td.calendar__actual, td.actual').text().trim();
+      
+      let actual: string | undefined = undefined;
+      if (actualText && actualText !== '&nbsp;') {
+        actual = actualText;
+      }
+      
+      events.push({
+        date: new Date(currentDate),
+        time,
+        currency,
+        impact,
+        name: eventName,
+        forecast,
+        previous,
+        actual
+      });
+    });
+    
+    return events;
+  } catch (error) {
+    console.error('Error in Cheerio extraction:', error);
     return [];
   }
 }

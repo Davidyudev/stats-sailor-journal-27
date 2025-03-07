@@ -10,6 +10,7 @@ export class EventsFetcher {
   private lastRefreshAttempt: Date | null = null;
   private failedAttempts: number = 0;
   private maxFailedAttempts: number = 3;
+  private proxyIndex: number = 0; // Track which proxy we're using
   
   private constructor() {}
   
@@ -18,6 +19,22 @@ export class EventsFetcher {
       EventsFetcher.instance = new EventsFetcher();
     }
     return EventsFetcher.instance;
+  }
+  
+  // List of available proxies with rotation
+  private getNextProxy(): string {
+    const proxies = [
+      'https://corsproxy.io/?',
+      'https://api.allorigins.win/raw?url=',
+      'https://cors-anywhere.herokuapp.com/',
+      'https://corsproxy.org/?', // New alternative
+      'https://thingproxy.freeboard.io/fetch/' // Another alternative
+    ];
+    
+    // Rotate through proxies
+    const proxy = proxies[this.proxyIndex];
+    this.proxyIndex = (this.proxyIndex + 1) % proxies.length;
+    return proxy;
   }
   
   public async fetchEvents(year: number, month: number): Promise<ForexEvent[]> {
@@ -43,35 +60,30 @@ export class EventsFetcher {
       
       // Format URL with zero-padded month
       const urlMonth = String(month + 1).padStart(2, '0');
-      
-      // Try multiple proxies in case one fails
-      const proxies = [
-        'https://corsproxy.io/?',
-        'https://api.allorigins.win/raw?url=',
-        'https://cors-anywhere.herokuapp.com/'
-      ];
-      
       const targetUrl = `https://www.forexfactory.com/calendar?month=${year}.${urlMonth}`;
       let events: ForexEvent[] = [];
       let success = false;
       
-      // Try each proxy until one works
-      for (const proxy of proxies) {
+      // Try multiple times with different proxies
+      const maxAttempts = 3;
+      for (let attempt = 0; attempt < maxAttempts; attempt++) {
         if (success) break;
         
         try {
+          const proxy = this.getNextProxy();
           const url = `${proxy}${encodeURIComponent(targetUrl)}`;
           
-          console.log(`Trying to fetch with proxy: ${proxy}`);
+          console.log(`Attempt ${attempt + 1}/${maxAttempts}: Fetching with proxy: ${proxy}`);
           
           const response = await fetch(url, {
             method: 'GET',
             headers: {
               'Accept': 'text/html,application/xhtml+xml,application/xml',
-              'User-Agent': 'Mozilla/5.0 (compatible; TraderJournalApp/1.0)'
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+              'Referer': 'https://www.google.com/'
             },
             // Add a reasonable timeout
-            signal: AbortSignal.timeout(10000)
+            signal: AbortSignal.timeout(15000)
           });
           
           if (!response.ok) {
@@ -82,7 +94,15 @@ export class EventsFetcher {
           const html = await response.text();
           
           if (!html || html.length < 1000) {
-            console.warn(`Proxy ${proxy} returned too little data`);
+            console.warn(`Proxy ${proxy} returned too little data (${html.length} bytes)`);
+            continue;
+          }
+          
+          console.log(`Got HTML (${html.length} bytes), extracting events...`);
+          
+          // Check if we have the expected calendar data in the HTML
+          if (!html.includes('calendar_row') && !html.includes('calendarComponentStates')) {
+            console.warn(`HTML doesn't contain expected calendar data`);
             continue;
           }
           
@@ -106,7 +126,7 @@ export class EventsFetcher {
           success = true;
           console.log(`Successfully fetched ${events.length} events with proxy ${proxy}`);
         } catch (error) {
-          console.warn(`Error with proxy ${proxy}:`, error);
+          console.warn(`Error with attempt ${attempt + 1}/${maxAttempts}:`, error);
         }
       }
       
