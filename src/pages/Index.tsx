@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Activity, TrendingUp, Wallet, BarChart } from 'lucide-react';
 import { StatCard } from '@/components/dashboard/StatCard';
@@ -175,93 +174,84 @@ const Index = () => {
         />
       </div>
 
-      <Tabs defaultValue="charts" className="w-full">
-        <TabsList className="mb-4">
-          <TabsTrigger value="charts">Charts</TabsTrigger>
-          <TabsTrigger value="calendar">Calendar</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="charts" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <PerformanceChart 
-              data={performance}
-              className="lg:col-span-2" 
-            />
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <PerformanceChart 
+            data={performance}
+            className="lg:col-span-2" 
+          />
+          
+          <div className="glass-card rounded-lg p-4">
+            <h3 className="text-lg font-medium mb-4">Trading Summary</h3>
             
-            <div className="glass-card rounded-lg p-4">
-              <h3 className="text-lg font-medium mb-4">Trading Summary</h3>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Win/Loss Ratio</span>
+                  <span className="font-medium">
+                    {winningTrades.length} / {filteredTrades.length - winningTrades.length}
+                  </span>
+                </div>
+                <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-primary rounded-full"
+                    style={{ width: `${winRate}%` }}
+                  ></div>
+                </div>
+              </div>
               
-              <div className="space-y-4">
+              <div className="pt-2">
+                <div className="text-xs text-muted-foreground mb-1">Top Performing</div>
                 <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Win/Loss Ratio</span>
-                    <span className="font-medium">
-                      {winningTrades.length} / {filteredTrades.length - winningTrades.length}
-                    </span>
-                  </div>
-                  <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-primary rounded-full"
-                      style={{ width: `${winRate}%` }}
-                    ></div>
-                  </div>
-                </div>
-                
-                <div className="pt-2">
-                  <div className="text-xs text-muted-foreground mb-1">Top Performing</div>
-                  <div className="space-y-2">
-                    {filteredSymbols
-                      .filter(symbol => symbol.totalPL > 0)
-                      .sort((a, b) => b.totalPL - a.totalPL)
-                      .slice(0, 3)
-                      .map(symbol => (
-                        <div key={symbol.name} className="flex justify-between items-center">
-                          <div className="flex items-center">
-                            <div className="w-2 h-2 rounded-full bg-primary mr-2"></div>
-                            <span>{symbol.name}</span>
-                          </div>
-                          <span className="text-profit text-sm">+{symbol.totalPL.toFixed(2)}</span>
+                  {filteredSymbols
+                    .filter(symbol => symbol.totalPL > 0)
+                    .sort((a, b) => b.totalPL - a.totalPL)
+                    .slice(0, 3)
+                    .map(symbol => (
+                      <div key={symbol.name} className="flex justify-between items-center">
+                        <div className="flex items-center">
+                          <div className="w-2 h-2 rounded-full bg-primary mr-2"></div>
+                          <span>{symbol.name}</span>
                         </div>
-                      ))}
-                  </div>
+                        <span className="text-profit text-sm">+{symbol.totalPL.toFixed(2)}</span>
+                      </div>
+                    ))}
                 </div>
-                
-                <div className="pt-2">
-                  <div className="text-xs text-muted-foreground mb-1">Worst Performing</div>
-                  <div className="space-y-2">
-                    {filteredSymbols
-                      .filter(symbol => symbol.totalPL < 0)
-                      .sort((a, b) => a.totalPL - b.totalPL)
-                      .slice(0, 3)
-                      .map(symbol => (
-                        <div key={symbol.name} className="flex justify-between items-center">
-                          <div className="flex items-center">
-                            <div className="w-2 h-2 rounded-full bg-loss mr-2"></div>
-                            <span>{symbol.name}</span>
-                          </div>
-                          <span className="text-loss text-sm">{symbol.totalPL.toFixed(2)}</span>
+              </div>
+              
+              <div className="pt-2">
+                <div className="text-xs text-muted-foreground mb-1">Worst Performing</div>
+                <div className="space-y-2">
+                  {filteredSymbols
+                    .filter(symbol => symbol.totalPL < 0)
+                    .sort((a, b) => a.totalPL - b.totalPL)
+                    .slice(0, 3)
+                    .map(symbol => (
+                      <div key={symbol.name} className="flex justify-between items-center">
+                        <div className="flex items-center">
+                          <div className="w-2 h-2 rounded-full bg-loss mr-2"></div>
+                          <span>{symbol.name}</span>
                         </div>
-                      ))}
-                  </div>
+                        <span className="text-loss text-sm">{symbol.totalPL.toFixed(2)}</span>
+                      </div>
+                    ))}
                 </div>
               </div>
             </div>
           </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <AssetPerformanceChart data={filteredSymbols} />
-            <MonthlyPerformanceChart data={filteredPerformance} />
-            <DurationPerformanceChart trades={filteredTrades} />
-          </div>
-        </TabsContent>
+        </div>
         
-        <TabsContent value="calendar">
-          <PerformanceCalendar 
-            data={filteredPerformance}
-            holidays={holidays}
-          />
-        </TabsContent>
-      </Tabs>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <AssetPerformanceChart data={filteredSymbols} />
+          <MonthlyPerformanceChart data={filteredPerformance} />
+          <DurationPerformanceChart trades={filteredTrades} />
+        </div>
+        
+        <PerformanceCalendar 
+          data={filteredPerformance}
+          holidays={holidays}
+        />
+      </div>
       
       <RecentTrades trades={mockDataService.getRecentTrades(10)} />
     </div>
