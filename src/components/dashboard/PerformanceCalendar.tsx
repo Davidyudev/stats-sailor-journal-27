@@ -13,7 +13,7 @@ import { useCalendarDates } from '@/hooks/useCalendarDates';
 import { useEconomicEvents } from '@/hooks/useEconomicEvents';
 import { useCalendarDetails } from '@/hooks/useCalendarDetails';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, AlertCircle, InfoCircle } from 'lucide-react';
+import { RefreshCw, AlertCircle, Info } from 'lucide-react';
 import { format } from 'date-fns';
 import { Toaster } from 'sonner';
 
