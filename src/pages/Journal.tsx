@@ -8,6 +8,7 @@ import { Trade } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
 import { TagFilter } from '@/components/ui/tag-filter';
+import { mockDataService } from '@/lib/services/mockDataService';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -44,64 +45,6 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-
-const generateSampleTrades = (): Trade[] => {
-  const symbols = ['EURUSD', 'GBPUSD', 'USDJPY', 'AUDUSD', 'USDCAD', 'BTCUSD'];
-  const trades: Trade[] = [];
-  
-  for (let i = 0; i < 50; i++) {
-    const openDate = new Date();
-    openDate.setDate(openDate.getDate() - (50 - i));
-    openDate.setHours(Math.floor(Math.random() * 24), Math.floor(Math.random() * 60));
-    
-    const closeDate = new Date(openDate);
-    closeDate.setHours(closeDate.getHours() + Math.floor(Math.random() * 8) + 1);
-    
-    const type = Math.random() > 0.5 ? 'buy' : 'sell';
-    const symbol = symbols[Math.floor(Math.random() * symbols.length)];
-    
-    const openPrice = parseFloat((Math.random() * 100 + 100).toFixed(5));
-    const pips = parseFloat((Math.random() * 40 - 20).toFixed(1));
-    const lots = parseFloat((Math.random() * 2).toFixed(2));
-    
-    let closePrice;
-    if (type === 'buy') {
-      closePrice = openPrice + pips * 0.0001;
-    } else {
-      closePrice = openPrice - pips * 0.0001;
-    }
-    
-    const profitLoss = parseFloat((pips * 10 * lots).toFixed(2));
-    
-    const notes = Math.random() > 0.7 ? 'Trade taken based on support/resistance level' : 
-                Math.random() > 0.5 ? 'Following the trend after breakout' : undefined;
-    
-    const tags = [];
-    if (Math.random() > 0.6) tags.push('Trend');
-    if (Math.random() > 0.7) tags.push('Breakout');
-    if (Math.random() > 0.8) tags.push('News');
-    
-    trades.push({
-      id: `trade-${i}`,
-      symbol,
-      type,
-      openDate,
-      closeDate,
-      openPrice,
-      closePrice,
-      profitLoss,
-      pips,
-      lots,
-      status: 'closed',
-      notes,
-      tags: tags.length ? tags : undefined,
-      takeProfit: Math.random() > 0.5 ? openPrice + (type === 'buy' ? 0.0030 : -0.0030) : undefined,
-      stopLoss: Math.random() > 0.5 ? openPrice + (type === 'buy' ? -0.0020 : 0.0020) : undefined,
-    });
-  }
-  
-  return trades;
-};
 
 type TimePeriod = 'all' | '1m' | '3m' | '6m' | '1y' | 'custom';
 type FilterOptions = {
@@ -143,14 +86,14 @@ const Journal = () => {
 
   useEffect(() => {
     setTimeout(() => {
-      const sampleTrades = generateSampleTrades();
-      setTrades(sampleTrades);
+      const allTrades = mockDataService.getTrades();
+      setTrades(allTrades);
       
-      const symbols = Array.from(new Set(sampleTrades.map(trade => trade.symbol)));
+      const symbols = Array.from(new Set(allTrades.map(trade => trade.symbol)));
       setAvailableSymbols(symbols);
       setFilters(prev => ({ ...prev, symbols }));
       
-      const allTags = sampleTrades
+      const allTags = allTrades
         .filter(trade => trade.tags && trade.tags.length > 0)
         .flatMap(trade => trade.tags || []);
       const uniqueTags = Array.from(new Set(allTags));
@@ -159,76 +102,6 @@ const Journal = () => {
       setIsLoading(false);
     }, 1000);
   }, []);
-
-  useEffect(() => {
-    let result = [...trades];
-    
-    if (filters.timePeriod !== 'all' && filters.timePeriod !== 'custom') {
-      const now = new Date();
-      let monthsToSubtract = 0;
-      
-      switch(filters.timePeriod) {
-        case '1m': monthsToSubtract = 1; break;
-        case '3m': monthsToSubtract = 3; break;
-        case '6m': monthsToSubtract = 6; break;
-        case '1y': monthsToSubtract = 12; break;
-      }
-      
-      const cutoffDate = new Date();
-      cutoffDate.setMonth(now.getMonth() - monthsToSubtract);
-      
-      result = result.filter(trade => trade.closeDate >= cutoffDate);
-    } 
-    else if (filters.timePeriod === 'custom' && filters.dateRange) {
-      const { from, to } = filters.dateRange;
-      
-      if (from && to) {
-        const endDate = new Date(to);
-        endDate.setHours(23, 59, 59, 999);
-        
-        result = result.filter(trade => 
-          trade.closeDate >= from && trade.closeDate <= endDate
-        );
-      } else if (from) {
-        result = result.filter(trade => trade.closeDate >= from);
-      }
-    }
-    
-    if (filters.symbols.length > 0 && filters.symbols.length < availableSymbols.length) {
-      result = result.filter(trade => filters.symbols.includes(trade.symbol));
-    }
-    
-    if (!filters.tradeType.includes('all') && filters.tradeType.length < 2) {
-      result = result.filter(trade => filters.tradeType.includes(trade.type));
-    }
-    
-    if (filters.profitOnly && !filters.lossOnly) {
-      result = result.filter(trade => trade.profitLoss > 0);
-    } else if (filters.lossOnly && !filters.profitOnly) {
-      result = result.filter(trade => trade.profitLoss < 0);
-    }
-    
-    if (filters.withNotes) {
-      result = result.filter(trade => !!trade.notes);
-    }
-    
-    if (filters.tags.length > 0) {
-      result = result.filter(trade => 
-        trade.tags && trade.tags.some(tag => filters.tags.includes(tag))
-      );
-    }
-    
-    if (searchQuery) {
-      result = result.filter(trade => 
-        trade.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        trade.type.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (trade.notes && trade.notes.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (trade.tags && trade.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase())))
-      );
-    }
-    
-    setFilteredTrades(result);
-  }, [searchQuery, trades, filters, availableSymbols, availableTags]);
 
   const handleSort = (key: keyof Trade) => {
     setSortConfig(prev => ({

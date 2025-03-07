@@ -34,8 +34,9 @@ export const prepareChartData = (filteredData: DailyPerformance[]) => {
   
   // Always add a starting zero point at the beginning
   if (sortedData.length > 0) {
+    // Create a day before the first data point to ensure we always start at zero
     const firstDate = new Date(sortedData[0].date);
-    firstDate.setDate(firstDate.getDate() - 1); // Day before first day
+    firstDate.setDate(firstDate.getDate() - 1);
     
     result.push({
       date: firstDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
