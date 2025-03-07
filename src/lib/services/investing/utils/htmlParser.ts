@@ -30,7 +30,7 @@ export function parseInvestingCalendarHTML(html: string, year: number, month: nu
     // If we still don't have events, try a more generic approach
     if (!eventRows || eventRows.length === 0) {
       // Try to find any table rows that might contain event data
-      eventRows = $('table tr').filter(function(_, el) {
+      eventRows = $('table tr').filter(function(this: cheerio.Element, _, el) {
         const $el = $(el);
         // Look for rows with multiple cells and some data attributes
         return $el.find('td').length >= 4 && 
