@@ -1,8 +1,7 @@
-
 import { ForexEvent } from '../types';
 import * as cheerio from 'cheerio';
 
-// Extract calendar data from the Forex Factory page
+// Main extraction function
 export function extractCalendarData(html: string, year: number, month: number): ForexEvent[] {
   try {
     console.log("Extracting calendar data...");
@@ -21,12 +20,56 @@ export function extractCalendarData(html: string, year: number, month: number): 
       events = extractWithCheerio(html, year, month);
     }
     
+    // Validate the extracted events
+    events = validateAndFixImpacts(events);
+    
     console.log(`Extracted ${events.length} events in total`);
+    console.log('Impact distribution:', countImpacts(events));
+    
     return events;
   } catch (error) {
     console.error('Error extracting calendar data:', error);
     return [];
   }
+}
+
+// Helper function to count impacts for debugging
+function countImpacts(events: ForexEvent[]) {
+  return events.reduce((acc, event) => {
+    acc[event.impact] = (acc[event.impact] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+}
+
+// Helper function to validate and fix impact levels
+function validateAndFixImpacts(events: ForexEvent[]): ForexEvent[] {
+  return events.map(event => {
+    // Ensure impact is correctly set based on any available indicators
+    if (event.impact === 'low' && event.name) {
+      const name = event.name.toLowerCase();
+      // Common high impact events
+      if (
+        name.includes('nfp') || 
+        name.includes('non-farm') ||
+        name.includes('fomc') || 
+        name.includes('rate decision') ||
+        name.includes('cpi ') ||
+        name.includes('gdp')
+      ) {
+        return { ...event, impact: 'high' };
+      }
+      // Common medium impact events
+      if (
+        name.includes('pmi') ||
+        name.includes('retail sales') ||
+        name.includes('employment') ||
+        name.includes('manufacturing')
+      ) {
+        return { ...event, impact: 'medium' };
+      }
+    }
+    return event;
+  });
 }
 
 // Extract data from embedded JSON in page
@@ -115,38 +158,35 @@ function processCalendarData(calendarData: any, year: number, month: number): Fo
   console.log(`Processing ${calendarData.days.length} days from calendar data`);
   
   calendarData.days.forEach((day: any) => {
-    if (!day.events || !Array.isArray(day.events)) {
-      return;
-    }
+    if (!day.events || !Array.isArray(day.events)) return;
     
     // Handle different date formats
     let dateObj: Date;
     if (day.dateline) {
-      // Unix timestamp (in seconds)
-      const dayTimestamp = day.dateline * 1000;
-      dateObj = new Date(dayTimestamp);
+      dateObj = new Date(day.dateline * 1000);
     } else if (day.date) {
-      // ISO string or date string
       dateObj = new Date(day.date);
     } else {
-      // Skip days without proper date
       return;
     }
     
     day.events.forEach((event: any) => {
-      if (!event.currency || !event.name) {
-        return;
-      }
+      if (!event.currency || !event.name) return;
       
       let impact: 'high' | 'medium' | 'low' = 'low';
       
-      if (event.impactClass) {
+      // Enhanced impact detection
+      if (event.impact) {
+        impact = event.impact.toLowerCase();
+      } else if (event.impactClass) {
         if (event.impactClass.includes('red') || 
-            event.impactTitle?.includes('High Impact')) {
+            event.impactTitle?.toLowerCase().includes('high')) {
           impact = 'high';
-        } else if (event.impactClass.includes('orange') || 
-                  event.impactClass.includes('yel') || 
-                  event.impactTitle?.includes('Medium Impact')) {
+        } else if (
+          event.impactClass.includes('orange') || 
+          event.impactClass.includes('yel') || 
+          event.impactTitle?.toLowerCase().includes('medium')
+        ) {
           impact = 'medium';
         }
       }
@@ -160,7 +200,7 @@ function processCalendarData(calendarData: any, year: number, month: number): Fo
         date: dateObj,
         time: eventTime,
         currency: event.currency,
-        impact: impact,
+        impact,
         name: event.name,
         forecast: event.forecast || '',
         previous: event.previous || '',
