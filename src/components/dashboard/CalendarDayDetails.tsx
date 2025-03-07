@@ -8,7 +8,8 @@ import {
   Dialog,
   DialogContent,
   DialogHeader,
-  DialogTitle
+  DialogTitle,
+  DialogDescription
 } from '@/components/ui/dialog';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
@@ -55,14 +56,19 @@ export const CalendarDayDetails = ({
     return timeA.localeCompare(timeB);
   });
 
+  const formattedDate = date ? format(new Date(date), 'EEEE, MMMM d, yyyy') : '';
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <CalendarIcon className="h-5 w-5" />
-            {format(date, 'EEEE, MMMM d, yyyy')}
+            {formattedDate}
           </DialogTitle>
+          <DialogDescription>
+            Details for the selected date
+          </DialogDescription>
         </DialogHeader>
         
         <div className="space-y-4">

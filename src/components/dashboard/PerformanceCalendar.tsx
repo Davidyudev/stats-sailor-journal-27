@@ -34,7 +34,7 @@ export const PerformanceCalendar = ({
   holidays = []
 }: PerformanceCalendarProps) => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [economicEvents, setEconomicEvents] = useState<ForexEvent[]>([]);
   const [filteredEvents, setFilteredEvents] = useState<ForexEvent[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -118,17 +118,24 @@ export const PerformanceCalendar = ({
   };
 
   const onDateClick = (day: Date) => {
-    setSelectedDate(day);
+    // Set the selected date to the clicked day
+    setSelectedDate(new Date(day));
     
     // Get events for this day
     const dateStr = format(day, 'yyyy-MM-dd');
-    const eventsForDay = filteredEvents.filter(event => format(event.date, 'yyyy-MM-dd') === dateStr);
+    const eventsForDay = filteredEvents.filter(event => 
+      format(new Date(event.date), 'yyyy-MM-dd') === dateStr
+    );
     
     // Get performance data for this day
-    const performanceForDay = data.find(item => format(item.date, 'yyyy-MM-dd') === dateStr);
+    const performanceForDay = data.find(item => 
+      format(new Date(item.date), 'yyyy-MM-dd') === dateStr
+    );
     
     // Get holiday info for this day
-    const holidayForDay = holidays.find(holiday => format(holiday.date, 'yyyy-MM-dd') === dateStr);
+    const holidayForDay = holidays.find(holiday => 
+      format(new Date(holiday.date), 'yyyy-MM-dd') === dateStr
+    );
     
     // Set the selected day data
     setSelectedDayEvents(eventsForDay);
@@ -213,14 +220,14 @@ export const PerformanceCalendar = ({
 
     // Create performance lookup for fast access
     const performanceLookup = data.reduce((acc, item) => {
-      const dateStr = format(item.date, 'yyyy-MM-dd');
+      const dateStr = format(new Date(item.date), 'yyyy-MM-dd');
       acc[dateStr] = item;
       return acc;
     }, {} as Record<string, DailyPerformance>);
 
     // Create economic events lookup
     const eventsLookup = filteredEvents.reduce((acc, event) => {
-      const dateStr = format(event.date, 'yyyy-MM-dd');
+      const dateStr = format(new Date(event.date), 'yyyy-MM-dd');
       if (!acc[dateStr]) acc[dateStr] = [];
       acc[dateStr].push(event);
       return acc;
@@ -228,7 +235,7 @@ export const PerformanceCalendar = ({
 
     // Create holidays lookup
     const holidaysLookup = holidays.reduce((acc, holiday) => {
-      const dateStr = format(holiday.date, 'yyyy-MM-dd');
+      const dateStr = format(new Date(holiday.date), 'yyyy-MM-dd');
       acc[dateStr] = holiday;
       return acc;
     }, {} as Record<string, (typeof holidays)[0]>);
@@ -247,11 +254,11 @@ export const PerformanceCalendar = ({
             className={cn(
               "min-h-[80px] p-1 border border-border/40 text-sm cursor-pointer hover:bg-muted/30 transition-colors",
               !isSameMonth(day, monthStart) && "text-muted-foreground bg-muted/20",
-              isSameDay(day, selectedDate) && "bg-primary/10 border-primary/50",
+              selectedDate && isSameDay(day, selectedDate) && "bg-primary/10 border-primary/50",
               holiday && "bg-muted/30"
             )}
             key={day.toString()}
-            onClick={() => onDateClick(day)}
+            onClick={() => onDateClick(new Date(day))}
           >
             <div className="flex justify-between items-start">
               <span className={cn(
@@ -458,14 +465,16 @@ export const PerformanceCalendar = ({
       </div>
       
       {/* Day details dialog */}
-      <CalendarDayDetails
-        isOpen={isDetailsOpen}
-        onClose={() => setIsDetailsOpen(false)}
-        date={selectedDate}
-        performance={selectedDayPerformance}
-        events={selectedDayEvents}
-        holiday={selectedDayHoliday}
-      />
+      {selectedDate && (
+        <CalendarDayDetails
+          isOpen={isDetailsOpen}
+          onClose={() => setIsDetailsOpen(false)}
+          date={selectedDate}
+          performance={selectedDayPerformance}
+          events={selectedDayEvents}
+          holiday={selectedDayHoliday}
+        />
+      )}
     </MountTransition>
   );
 };
