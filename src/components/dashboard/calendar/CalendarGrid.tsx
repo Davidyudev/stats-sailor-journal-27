@@ -37,13 +37,11 @@ export const CalendarGrid = ({
     return acc;
   }, {} as Record<string, DailyPerformance>);
 
-  // Create economic events lookup - only high impact events for calendar view
+  // Create economic events lookup
   const eventsLookup = filteredEvents.reduce((acc, event) => {
-    if (event.impact === 'high') { // Only include high impact events
-      const dateStr = format(new Date(event.date), 'yyyy-MM-dd');
-      if (!acc[dateStr]) acc[dateStr] = [];
-      acc[dateStr].push(event);
-    }
+    const dateStr = format(new Date(event.date), 'yyyy-MM-dd');
+    if (!acc[dateStr]) acc[dateStr] = [];
+    acc[dateStr].push(event);
     return acc;
   }, {} as Record<string, ForexEvent[]>);
 
