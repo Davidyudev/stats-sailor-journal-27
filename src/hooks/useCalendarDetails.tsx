@@ -30,6 +30,11 @@ export const useCalendarDetails = (
       return format(eventDate, 'yyyy-MM-dd') === dateStr;
     });
     
+    // Sort events by time
+    const sortedEvents = eventsForDay.sort((a, b) => {
+      return a.time.localeCompare(b.time);
+    });
+    
     // Find performance data for this specific day
     const performanceForDay = data.find(item => {
       const itemDate = new Date(item.date);
@@ -43,7 +48,7 @@ export const useCalendarDetails = (
     });
     
     // Set the selected day data
-    setSelectedDayEvents(eventsForDay);
+    setSelectedDayEvents(sortedEvents);
     setSelectedDayPerformance(performanceForDay);
     setSelectedDayHoliday(holidayForDay);
     

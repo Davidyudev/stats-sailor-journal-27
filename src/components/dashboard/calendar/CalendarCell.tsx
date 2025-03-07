@@ -28,7 +28,8 @@ export const CalendarCell = ({
   events,
   holiday 
 }: CalendarCellProps) => {
-  const hasHighImpactEvent = events.some(e => e.impact === 'high');
+  // Filter to only show high impact events in the calendar view
+  const highImpactEvents = events.filter(e => e.impact === 'high');
 
   return (
     <div
@@ -49,7 +50,7 @@ export const CalendarCell = ({
         </span>
         
         <div className="flex items-center gap-1">
-          {hasHighImpactEvent && (
+          {highImpactEvents.length > 0 && (
             <AlertTriangle className="h-3.5 w-3.5 text-destructive" />
           )}
           
@@ -75,35 +76,26 @@ export const CalendarCell = ({
       )}
       
       <div className="mt-auto">
-        {events.length > 0 && (
+        {highImpactEvents.length > 0 && (
           <div className="space-y-0.5">
-            {events
-              .sort((a, b) => {
-                // Sort by impact first (high -> medium -> low)
-                const impactOrder = { high: 0, medium: 1, low: 2 };
-                return impactOrder[a.impact] - impactOrder[b.impact];
-              })
-              .slice(0, 2) // Only show the top 2 events to avoid cluttering
+            {highImpactEvents
+              .slice(0, 2) // Only show the top 2 high impact events to avoid cluttering
               .map((event, idx) => (
                 <div 
                   key={idx} 
                   className="text-[10px] truncate flex items-center gap-1" 
                   title={`${event.currency} ${event.name} at ${event.time}`}
                 >
-                  <span className={cn(
-                    "inline-block w-1.5 h-1.5 rounded-full flex-shrink-0",
-                    event.impact === 'high' ? "bg-destructive" : 
-                    event.impact === 'medium' ? "bg-amber-400" : "bg-muted-foreground"
-                  )} />
+                  <span className="inline-block w-1.5 h-1.5 rounded-full flex-shrink-0 bg-destructive" />
                   <span className="font-medium text-[10px]">{event.currency}</span>
                   <span className="truncate text-[10px]">
                     {event.name.substring(0, 12)}
                   </span>
                 </div>
               ))}
-            {events.length > 2 && (
+            {highImpactEvents.length > 2 && (
               <div className="text-[10px] text-muted-foreground">
-                +{events.length - 2} more events
+                +{highImpactEvents.length - 2} more high impact events
               </div>
             )}
           </div>
