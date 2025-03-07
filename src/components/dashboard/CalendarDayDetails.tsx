@@ -100,13 +100,13 @@ export const CalendarDayDetails = ({
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-muted-foreground">Win/Loss:</span>
                     <span className="font-medium">
-                      {performance.wins}/{performance.trades - performance.wins}
+                      {Math.round(performance.winRate * performance.trades)}/{performance.trades - Math.round(performance.winRate * performance.trades)}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-muted-foreground">Win Rate:</span>
                     <span className="font-medium">
-                      {((performance.wins / performance.trades) * 100).toFixed(1)}%
+                      {(performance.winRate * 100).toFixed(1)}%
                     </span>
                   </div>
                 </div>
