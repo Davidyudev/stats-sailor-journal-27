@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { getMonth, getYear } from 'date-fns';
 import { forexFactoryService, ForexEvent } from '@/lib/services/forexFactoryService';
+import { toast } from "sonner";
 
 export const useEconomicEvents = (currentMonth: Date) => {
   const [economicEvents, setEconomicEvents] = useState<ForexEvent[]>([]);
@@ -43,6 +44,7 @@ export const useEconomicEvents = (currentMonth: Date) => {
         
       } catch (error) {
         console.error('Failed to fetch economic events:', error);
+        toast.error('Failed to load economic calendar data');
       } finally {
         setIsLoading(false);
       }
