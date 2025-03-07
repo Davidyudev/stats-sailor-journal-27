@@ -1,7 +1,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { getMonth, getYear } from 'date-fns';
-import { forexFactoryService, ForexEvent } from '@/lib/services/forexFactoryService';
+import { economicCalendarService, ForexEvent, DataSource } from '@/lib/services/economicCalendarService';
 import { toast } from "sonner";
 
 export const useEconomicEvents = (currentMonth: Date) => {
@@ -10,6 +10,7 @@ export const useEconomicEvents = (currentMonth: Date) => {
   const [isLoading, setIsLoading] = useState(false);
   const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
   const [isMockData, setIsMockData] = useState(false);
+  const [dataSource, setDataSource] = useState<DataSource>(economicCalendarService.getDataSource());
   
   // Filters
   const [impactFilters, setImpactFilters] = useState({
@@ -22,6 +23,33 @@ export const useEconomicEvents = (currentMonth: Date) => {
   const [availableCurrencies, setAvailableCurrencies] = useState<string[]>([]);
   const [selectedCurrencies, setSelectedCurrencies] = useState<Record<string, boolean>>({});
 
+  // Change the data source
+  const changeDataSource = useCallback((source: DataSource) => {
+    economicCalendarService.setDataSource(source);
+    setDataSource(source);
+    // Refresh data after changing source
+    fetchEconomicEvents();
+    toast.success(`Switched to ${source === 'fred' ? 'FRED Economic Data' : 'ForexFactory'} as data source`);
+  }, []);
+  
+  // Set FRED API key
+  const setFredApiKey = useCallback((apiKey: string) => {
+    if (apiKey && apiKey.trim() !== '') {
+      economicCalendarService.setFredApiKey(apiKey);
+      // If we're setting a FRED API key, switch to FRED as source
+      if (dataSource !== 'fred') {
+        changeDataSource('fred');
+      } else {
+        // Refresh data with the new API key
+        fetchEconomicEvents();
+      }
+      toast.success('FRED API key set successfully');
+      return true;
+    }
+    toast.error('Please provide a valid API key');
+    return false;
+  }, [dataSource, changeDataSource]);
+
   // Function to fetch economic events
   const fetchEconomicEvents = useCallback(async () => {
     setIsLoading(true);
@@ -32,10 +60,10 @@ export const useEconomicEvents = (currentMonth: Date) => {
       // Store the current real data status before fetching
       const wasMockData = isMockData;
       
-      console.log(`Fetching economic events for ${year}-${month + 1}`);
+      console.log(`Fetching economic events for ${year}-${month + 1} from ${dataSource}`);
       
       // Try to get events
-      const events = await forexFactoryService.getEvents(year, month);
+      const events = await economicCalendarService.getEvents(year, month);
       
       console.log(`Received ${events.length} events`);
       
@@ -48,7 +76,7 @@ export const useEconomicEvents = (currentMonth: Date) => {
         setIsMockData(true);
       } else {
         setIsMockData(false);
-        console.log("Using real data from Forex Factory");
+        console.log(`Using real data from ${dataSource}`);
       }
       
       setEconomicEvents(events);
@@ -80,7 +108,7 @@ export const useEconomicEvents = (currentMonth: Date) => {
     } finally {
       setIsLoading(false);
     }
-  }, [currentMonth, isMockData, selectedCurrencies]);
+  }, [currentMonth, isMockData, selectedCurrencies, dataSource]);
 
   // Fetch economic events when the month changes
   useEffect(() => {
@@ -99,10 +127,10 @@ export const useEconomicEvents = (currentMonth: Date) => {
       const wasMockData = isMockData;
       
       // Clear cache and force refresh
-      forexFactoryService.clearCache(year, month);
+      economicCalendarService.clearCache(year, month);
       
       // Force refresh by fetching again
-      const events = await forexFactoryService.getEvents(year, month);
+      const events = await economicCalendarService.getEvents(year, month);
       
       // Check for data quality issues
       const hasHighImpact = events.some(e => e.impact === 'high');
@@ -198,6 +226,9 @@ export const useEconomicEvents = (currentMonth: Date) => {
     handleToggleImpact,
     handleToggleCurrency,
     handleSelectAllCurrencies,
-    isMockData
+    isMockData,
+    dataSource,
+    changeDataSource,
+    setFredApiKey
   };
 };
