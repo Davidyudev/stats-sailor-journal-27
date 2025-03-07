@@ -4,6 +4,7 @@ import { InvestingEvent } from '../types';
 class EventsCache {
   private static instance: EventsCache;
   private cache: Map<string, { events: InvestingEvent[], timestamp: number }> = new Map();
+  private mockCache: Map<string, InvestingEvent[]> = new Map(); // Add mock data cache
   private cacheDuration: number = 30 * 60 * 1000; // 30 minutes in ms
   
   private constructor() {}
@@ -32,6 +33,12 @@ class EventsCache {
     return null;
   }
   
+  // Add method to get mock data
+  public getMockData(year: number, month: number): InvestingEvent[] | null {
+    const key = this.getCacheKey(year, month);
+    return this.mockCache.get(key) || null;
+  }
+  
   public set(year: number, month: number, events: InvestingEvent[]): void {
     if (!events || events.length === 0) {
       console.warn(`Not caching empty event list for ${year}-${month + 1}`);
@@ -46,14 +53,28 @@ class EventsCache {
     console.log(`Cached ${events.length} events for ${year}-${month + 1}`);
   }
   
+  // Add method to set mock data
+  public setMockData(year: number, month: number, events: InvestingEvent[]): void {
+    if (!events || events.length === 0) {
+      console.warn(`Not caching empty mock data for ${year}-${month + 1}`);
+      return;
+    }
+    
+    const key = this.getCacheKey(year, month);
+    this.mockCache.set(key, events);
+    console.log(`Cached ${events.length} mock events for ${year}-${month + 1}`);
+  }
+  
   public clear(year: number, month: number): void {
     const key = this.getCacheKey(year, month);
     this.cache.delete(key);
+    this.mockCache.delete(key); // Also clear mock data
     console.log(`Cleared cache for ${year}-${month + 1}`);
   }
   
   public clearAll(): void {
     this.cache.clear();
+    this.mockCache.clear(); // Also clear mock data
     console.log('Cleared all cached economic events');
   }
   
