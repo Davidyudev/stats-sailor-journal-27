@@ -1,7 +1,6 @@
 
 import { DailyPerformance } from '@/lib/types';
-
-export type TimePeriod = 'all' | '1m' | '3m' | '6m' | '1y';
+import { TimePeriod } from '@/hooks/useTimePeriodFilter';
 
 export const filterDataByTimePeriod = (data: DailyPerformance[], timePeriod: TimePeriod): DailyPerformance[] => {
   if (timePeriod === 'all') return data;

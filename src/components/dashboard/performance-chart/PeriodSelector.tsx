@@ -1,5 +1,5 @@
 
-import { TimePeriod } from './utils';
+import { TimePeriod } from '@/hooks/useTimePeriodFilter';
 import {
   Select,
   SelectContent,
@@ -9,13 +9,19 @@ import {
 } from "@/components/ui/select";
 
 interface PeriodSelectorProps {
-  value: TimePeriod;
-  onChange: (value: TimePeriod) => void;
+  selectedTimePeriod: TimePeriod;
+  setSelectedTimePeriod: (value: TimePeriod) => void;
 }
 
-export const PeriodSelector = ({ value, onChange }: PeriodSelectorProps) => {
+export const PeriodSelector = ({ 
+  selectedTimePeriod, 
+  setSelectedTimePeriod 
+}: PeriodSelectorProps) => {
   return (
-    <Select value={value} onValueChange={(value) => onChange(value as TimePeriod)}>
+    <Select 
+      value={selectedTimePeriod} 
+      onValueChange={(value) => setSelectedTimePeriod(value as TimePeriod)}
+    >
       <SelectTrigger className="w-[120px] h-8 text-xs">
         <SelectValue placeholder="Time Period" />
       </SelectTrigger>

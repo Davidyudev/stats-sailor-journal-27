@@ -1,23 +1,29 @@
 
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { MountTransition } from '@/components/ui/mt4-connector';
 import { cn } from '@/lib/utils';
 import { DailyPerformance } from '@/lib/types';
-import { filterDataByTimePeriod, prepareChartData, calculateTotalProfit, TimePeriod } from './performance-chart/utils';
+import { filterDataByTimePeriod, prepareChartData, calculateTotalProfit } from './performance-chart/utils';
 import { PeriodSelector } from './performance-chart/PeriodSelector';
 import { ChartComponent } from './performance-chart/ChartComponent';
+import { TimePeriod } from '@/hooks/useTimePeriodFilter';
 
 interface PerformanceChartProps {
   data: DailyPerformance[];
   className?: string;
+  selectedTimePeriod: TimePeriod;
+  setSelectedTimePeriod: (value: TimePeriod) => void;
 }
 
-export const PerformanceChart = ({ data, className }: PerformanceChartProps) => {
-  const [timePeriod, setTimePeriod] = useState<TimePeriod>('all');
-  
+export const PerformanceChart = ({ 
+  data, 
+  className,
+  selectedTimePeriod,
+  setSelectedTimePeriod 
+}: PerformanceChartProps) => {
   const filteredData = useMemo(() => {
-    return filterDataByTimePeriod(data, timePeriod);
-  }, [data, timePeriod]);
+    return filterDataByTimePeriod(data, selectedTimePeriod);
+  }, [data, selectedTimePeriod]);
 
   const chartData = useMemo(() => {
     return prepareChartData(filteredData);
@@ -34,8 +40,8 @@ export const PerformanceChart = ({ data, className }: PerformanceChartProps) => 
           <h3 className="text-lg font-medium">Performance</h3>
           <div className="flex items-center gap-3">
             <PeriodSelector 
-              value={timePeriod} 
-              onChange={(value) => setTimePeriod(value)} 
+              selectedTimePeriod={selectedTimePeriod} 
+              setSelectedTimePeriod={setSelectedTimePeriod} 
             />
             <div className={cn(
               "text-sm font-medium",

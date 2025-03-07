@@ -49,6 +49,8 @@ const Index = () => {
         <PerformanceOverview 
           performance={filteredPerformance}
           symbols={filteredSymbols}
+          selectedTimePeriod={selectedTimePeriod}
+          setSelectedTimePeriod={setSelectedTimePeriod}
         />
         
         <ChartsSection
