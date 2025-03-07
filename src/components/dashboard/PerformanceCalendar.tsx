@@ -17,6 +17,7 @@ import {
   DropdownMenuCheckboxItem 
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
+import { CalendarDayDetails } from './CalendarDayDetails';
 
 interface PerformanceCalendarProps {
   data: DailyPerformance[];
@@ -37,6 +38,12 @@ export const PerformanceCalendar = ({
   const [economicEvents, setEconomicEvents] = useState<ForexEvent[]>([]);
   const [filteredEvents, setFilteredEvents] = useState<ForexEvent[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  
+  // Day details dialog state
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [selectedDayEvents, setSelectedDayEvents] = useState<ForexEvent[]>([]);
+  const [selectedDayPerformance, setSelectedDayPerformance] = useState<DailyPerformance | undefined>(undefined);
+  const [selectedDayHoliday, setSelectedDayHoliday] = useState<(typeof holidays)[0] | undefined>(undefined);
   
   // Filters
   const [impactFilters, setImpactFilters] = useState({
@@ -112,6 +119,24 @@ export const PerformanceCalendar = ({
 
   const onDateClick = (day: Date) => {
     setSelectedDate(day);
+    
+    // Get events for this day
+    const dateStr = format(day, 'yyyy-MM-dd');
+    const eventsForDay = filteredEvents.filter(event => format(event.date, 'yyyy-MM-dd') === dateStr);
+    
+    // Get performance data for this day
+    const performanceForDay = data.find(item => format(item.date, 'yyyy-MM-dd') === dateStr);
+    
+    // Get holiday info for this day
+    const holidayForDay = holidays.find(holiday => format(holiday.date, 'yyyy-MM-dd') === dateStr);
+    
+    // Set the selected day data
+    setSelectedDayEvents(eventsForDay);
+    setSelectedDayPerformance(performanceForDay);
+    setSelectedDayHoliday(holidayForDay);
+    
+    // Open the details dialog
+    setIsDetailsOpen(true);
   };
   
   const handleToggleImpact = (impact: 'high' | 'medium' | 'low') => {
@@ -220,7 +245,7 @@ export const PerformanceCalendar = ({
         days.push(
           <div
             className={cn(
-              "min-h-[80px] p-1 border border-border/40 text-sm",
+              "min-h-[80px] p-1 border border-border/40 text-sm cursor-pointer hover:bg-muted/30 transition-colors",
               !isSameMonth(day, monthStart) && "text-muted-foreground bg-muted/20",
               isSameDay(day, selectedDate) && "bg-primary/10 border-primary/50",
               holiday && "bg-muted/30"
@@ -431,6 +456,16 @@ export const PerformanceCalendar = ({
           </div>
         </div>
       </div>
+      
+      {/* Day details dialog */}
+      <CalendarDayDetails
+        isOpen={isDetailsOpen}
+        onClose={() => setIsDetailsOpen(false)}
+        date={selectedDate}
+        performance={selectedDayPerformance}
+        events={selectedDayEvents}
+        holiday={selectedDayHoliday}
+      />
     </MountTransition>
   );
 };
