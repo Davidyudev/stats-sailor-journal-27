@@ -41,10 +41,10 @@ class MockDataService {
       { type: 'buy', pipsMod: 30, lotsMod: 2.0 }
     ];
     
-    // Generate data for the last 30 days
-    for (let i = 0; i < 30; i++) {
+    // Generate data for the last 60 days instead of 30 to include January trades
+    for (let i = 0; i < 60; i++) {
       const openDate = new Date();
-      openDate.setDate(openDate.getDate() - (30 - i));
+      openDate.setDate(openDate.getDate() - (60 - i));
       // Use predictable hour/minute based on index
       openDate.setHours(9 + (i % 8), (i * 7) % 60);
       

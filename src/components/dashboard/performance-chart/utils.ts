@@ -3,7 +3,10 @@ import { DailyPerformance } from '@/lib/types';
 import { TimePeriod } from '@/hooks/useTimePeriodFilter';
 
 export const filterDataByTimePeriod = (data: DailyPerformance[], timePeriod: TimePeriod): DailyPerformance[] => {
-  if (timePeriod === 'all') return data;
+  if (timePeriod === 'all') {
+    // Return all data sorted by date
+    return [...data].sort((a, b) => a.date.getTime() - b.date.getTime());
+  }
   
   const now = new Date();
   let monthsToSubtract = 0;
@@ -18,7 +21,9 @@ export const filterDataByTimePeriod = (data: DailyPerformance[], timePeriod: Tim
   const cutoffDate = new Date();
   cutoffDate.setMonth(now.getMonth() - monthsToSubtract);
   
-  return data.filter(item => item.date >= cutoffDate);
+  return data
+    .filter(item => item.date >= cutoffDate)
+    .sort((a, b) => a.date.getTime() - b.date.getTime());
 };
 
 export const prepareChartData = (filteredData: DailyPerformance[]) => {

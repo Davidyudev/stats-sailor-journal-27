@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Trade, DailyPerformance, Symbol } from '@/lib/types';
 
 export type TimePeriod = 'all' | '1m' | '3m' | '6m' | '1y';
@@ -13,7 +13,10 @@ export const useTimePeriodFilter = (
 
   // Filter trades based on selected time period
   const filteredTrades = (() => {
-    if (selectedTimePeriod === 'all') return trades;
+    if (selectedTimePeriod === 'all') {
+      // Make sure to return ALL trades without filtering when 'all' is selected
+      return [...trades].sort((a, b) => a.closeDate.getTime() - b.closeDate.getTime());
+    }
     
     const now = new Date();
     let monthsToSubtract = 0;
@@ -28,13 +31,13 @@ export const useTimePeriodFilter = (
     const cutoffDate = new Date();
     cutoffDate.setMonth(now.getMonth() - monthsToSubtract);
     
-    return trades.filter(trade => trade.closeDate >= cutoffDate);
+    return trades
+      .filter(trade => trade.closeDate >= cutoffDate)
+      .sort((a, b) => a.closeDate.getTime() - b.closeDate.getTime());
   })();
 
   // Filter symbols based on time period
   const filteredSymbols = (() => {
-    if (selectedTimePeriod === 'all') return symbols;
-    
     // Create a map of symbols with reset performance data
     const symbolMap = new Map();
     symbols.forEach(symbol => {
@@ -76,7 +79,10 @@ export const useTimePeriodFilter = (
 
   // Filter performance data based on time period
   const filteredPerformance = (() => {
-    if (selectedTimePeriod === 'all') return performance;
+    if (selectedTimePeriod === 'all') {
+      // Make sure to return ALL performance data without filtering when 'all' is selected 
+      return [...performance].sort((a, b) => a.date.getTime() - b.date.getTime());
+    }
     
     const now = new Date();
     let monthsToSubtract = 0;
@@ -91,7 +97,9 @@ export const useTimePeriodFilter = (
     const cutoffDate = new Date();
     cutoffDate.setMonth(now.getMonth() - monthsToSubtract);
     
-    return performance.filter(item => item.date >= cutoffDate);
+    return performance
+      .filter(item => item.date >= cutoffDate)
+      .sort((a, b) => a.date.getTime() - b.date.getTime());
   })();
 
   return {
