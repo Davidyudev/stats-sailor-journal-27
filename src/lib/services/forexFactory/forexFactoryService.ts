@@ -5,6 +5,8 @@ import { generateMonthEvents } from './eventGenerators';
 class ForexFactoryService {
   private static instance: ForexFactoryService;
   private cachedEvents: Record<string, ForexEvent[]> = {};
+  private isRefreshing: boolean = false;
+  private lastRefreshAttempt: Date | null = null;
   
   private constructor() {}
   
@@ -15,7 +17,7 @@ class ForexFactoryService {
     return ForexFactoryService.instance;
   }
   
-  // Fetch economic events by scraping Forex Factory website
+  // Fetch economic events from Forex Factory website
   public async getEvents(year: number, month: number): Promise<ForexEvent[]> {
     const cacheKey = `${year}-${month}`;
     
@@ -26,17 +28,39 @@ class ForexFactoryService {
     }
     
     try {
+      // Don't attempt to fetch if we've tried recently and failed
+      if (this.lastRefreshAttempt) {
+        const timeSinceLastAttempt = Date.now() - this.lastRefreshAttempt.getTime();
+        if (timeSinceLastAttempt < 5 * 60 * 1000) { // 5 minutes
+          console.log('Using mock data due to recent failed attempt');
+          return this.generateMockEvents(year, month);
+        }
+      }
+      
+      if (this.isRefreshing) {
+        console.log('Another refresh is in progress, using mock data');
+        return this.generateMockEvents(year, month);
+      }
+      
+      this.isRefreshing = true;
+      this.lastRefreshAttempt = new Date();
+      
       console.log(`Fetching economic events from Forex Factory for ${year}-${month+1}`);
       
       // Format month for URL (1-based, padded with 0)
       const urlMonth = String(month + 1).padStart(2, '0');
       
-      // Construct the URL for the Forex Factory calendar
-      const url = `https://cors-anywhere.herokuapp.com/https://www.forexfactory.com/calendar?month=${year}.${urlMonth}`;
+      // Instead of using cors-anywhere, we'll try a different approach
+      // by using an open CORS proxy or a service that's more reliable
+      const proxyUrl = 'https://corsproxy.io/';
+      const targetUrl = `https://www.forexfactory.com/calendar?month=${year}.${urlMonth}`;
+      const url = `${proxyUrl}?${encodeURIComponent(targetUrl)}`;
       
       const response = await fetch(url, {
+        method: 'GET',
         headers: {
-          'Origin': window.location.origin
+          'Accept': 'text/html,application/xhtml+xml,application/xml',
+          'User-Agent': 'Mozilla/5.0 (compatible; TraderJournalApp/1.0)'
         }
       });
       
@@ -49,16 +73,24 @@ class ForexFactoryService {
       
       // Cache the results
       this.cachedEvents[cacheKey] = events;
+      this.isRefreshing = false;
+      
       return events;
     } catch (error) {
       console.error("Failed to fetch economic events from Forex Factory:", error);
+      this.isRefreshing = false;
       
       // Fallback to mock data in case of scraping failure
-      console.log("Falling back to mock data");
-      const seed = year * 100 + month;
-      const random = new SeededRandom(seed);
-      return generateMonthEvents(year, month, random);
+      return this.generateMockEvents(year, month);
     }
+  }
+  
+  // Generate mock events as a fallback
+  private generateMockEvents(year: number, month: number): ForexEvent[] {
+    console.log("Falling back to mock data");
+    const seed = year * 100 + month;
+    const random = new SeededRandom(seed);
+    return generateMonthEvents(year, month, random);
   }
   
   // Parse HTML from Forex Factory to extract event data
@@ -146,6 +178,13 @@ class ForexFactoryService {
     return time; // Return original if we can't parse it
   }
   
+  // Manual refresh - clear cache for a specific month
+  public clearCache(year: number, month: number): void {
+    const cacheKey = `${year}-${month}`;
+    this.cachedEvents[cacheKey] = undefined as any;
+    console.log(`Cleared cache for ${cacheKey}`);
+  }
+  
   // Setup periodic refresh of data
   public setupPeriodicRefresh(intervalMinutes: number = 60): void {
     // Clear any existing intervals first
@@ -162,8 +201,7 @@ class ForexFactoryService {
       const currentMonth = now.getMonth();
       
       // Clear cache for current month to force refresh
-      const cacheKey = `${currentYear}-${currentMonth}`;
-      this.cachedEvents[cacheKey] = undefined as any;
+      this.clearCache(currentYear, currentMonth);
       
       // Trigger refresh
       this.getEvents(currentYear, currentMonth)

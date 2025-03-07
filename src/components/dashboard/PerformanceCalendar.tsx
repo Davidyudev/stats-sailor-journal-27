@@ -15,6 +15,7 @@ import { useCalendarDetails } from '@/hooks/useCalendarDetails';
 import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
 import { format } from 'date-fns';
+import { Toaster } from 'sonner';
 
 interface PerformanceCalendarProps {
   data: DailyPerformance[];
@@ -71,71 +72,74 @@ export const PerformanceCalendar = ({
   };
 
   return (
-    <MountTransition delay={300} className={cn("glass-card rounded-lg", className)}>
-      <div className="p-4">
-        <div className="flex justify-between items-start mb-4">
-          <h3 className="text-lg font-medium">Trading Calendar</h3>
-          <div className="flex flex-col items-end">
-            <div className="flex items-center gap-2 mb-2">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={refreshEvents} 
-                disabled={isLoading}
-              >
-                <RefreshCw className={cn("h-4 w-4 mr-1", isLoading && "animate-spin")} />
-                Refresh
-              </Button>
-              <CalendarFilters 
-                impactFilters={impactFilters}
-                handleToggleImpact={handleToggleImpact}
-                currencyFilter={currencyFilter}
-                setCurrencyFilter={setCurrencyFilter}
-                availableCurrencies={availableCurrencies}
-                selectedCurrencies={selectedCurrencies}
-                handleToggleCurrency={handleToggleCurrency}
-                handleSelectAllCurrencies={handleSelectAllCurrencies}
-                goToToday={goToToday}
-              />
+    <>
+      <MountTransition delay={300} className={cn("glass-card rounded-lg", className)}>
+        <div className="p-4">
+          <div className="flex justify-between items-start mb-4">
+            <h3 className="text-lg font-medium">Trading Calendar</h3>
+            <div className="flex flex-col items-end">
+              <div className="flex items-center gap-2 mb-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={refreshEvents} 
+                  disabled={isLoading}
+                >
+                  <RefreshCw className={cn("h-4 w-4 mr-1", isLoading && "animate-spin")} />
+                  Refresh
+                </Button>
+                <CalendarFilters 
+                  impactFilters={impactFilters}
+                  handleToggleImpact={handleToggleImpact}
+                  currencyFilter={currencyFilter}
+                  setCurrencyFilter={setCurrencyFilter}
+                  availableCurrencies={availableCurrencies}
+                  selectedCurrencies={selectedCurrencies}
+                  handleToggleCurrency={handleToggleCurrency}
+                  handleSelectAllCurrencies={handleSelectAllCurrencies}
+                  goToToday={goToToday}
+                />
+              </div>
+              {lastRefreshed && (
+                <span className="text-xs text-muted-foreground">
+                  Last updated: {format(lastRefreshed, 'MMM d, yyyy h:mm a')}
+                </span>
+              )}
             </div>
-            {lastRefreshed && (
-              <span className="text-xs text-muted-foreground">
-                Last updated: {format(lastRefreshed, 'MMM d, yyyy h:mm a')}
-              </span>
-            )}
           </div>
+          
+          <CalendarHeader 
+            currentMonth={currentMonth} 
+            prevMonth={prevMonth} 
+            nextMonth={nextMonth} 
+            isLoading={isLoading} 
+          />
+          <CalendarDays />
+          <CalendarGrid 
+            currentMonth={currentMonth}
+            selectedDate={selectedDate}
+            onDateClick={onDateClick}
+            data={data}
+            filteredEvents={filteredEvents}
+            holidays={holidays}
+          />
+          
+          <CalendarLegend />
         </div>
         
-        <CalendarHeader 
-          currentMonth={currentMonth} 
-          prevMonth={prevMonth} 
-          nextMonth={nextMonth} 
-          isLoading={isLoading} 
-        />
-        <CalendarDays />
-        <CalendarGrid 
-          currentMonth={currentMonth}
-          selectedDate={selectedDate}
-          onDateClick={onDateClick}
-          data={data}
-          filteredEvents={filteredEvents}
-          holidays={holidays}
-        />
-        
-        <CalendarLegend />
-      </div>
-      
-      {/* Only render the details dialog if there's a selected date */}
-      {selectedDate && (
-        <CalendarDayDetails
-          isOpen={isDetailsOpen}
-          onClose={() => setIsDetailsOpen(false)}
-          date={selectedDate}
-          performance={selectedDayPerformance}
-          events={selectedDayEvents}
-          holiday={selectedDayHoliday}
-        />
-      )}
-    </MountTransition>
+        {/* Only render the details dialog if there's a selected date */}
+        {selectedDate && (
+          <CalendarDayDetails
+            isOpen={isDetailsOpen}
+            onClose={() => setIsDetailsOpen(false)}
+            date={selectedDate}
+            performance={selectedDayPerformance}
+            events={selectedDayEvents}
+            holiday={selectedDayHoliday}
+          />
+        )}
+      </MountTransition>
+      <Toaster position="bottom-right" />
+    </>
   );
 };

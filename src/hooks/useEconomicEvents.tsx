@@ -63,6 +63,9 @@ export const useEconomicEvents = (currentMonth: Date) => {
       const year = getYear(currentMonth);
       const month = getMonth(currentMonth);
       
+      // Clear cache and force refresh
+      forexFactoryService.clearCache(year, month);
+      
       // Force refresh by fetching again
       const events = await forexFactoryService.getEvents(year, month);
       setEconomicEvents(events);
