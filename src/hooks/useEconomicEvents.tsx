@@ -32,6 +32,7 @@ export const useEconomicEvents = (currentMonth: Date) => {
         
         // Store the current real data status before fetching
         const wasMockData = isMockData;
+        setIsMockData(false); // Reset mock data flag
         
         // Add a console.log to help debugging
         console.log(`Fetching economic events from Forex Factory for ${year}-${month+1}`);
@@ -50,7 +51,25 @@ export const useEconomicEvents = (currentMonth: Date) => {
         // Restore the original console.error
         console.error = originalConsoleError;
         
-        setEconomicEvents(events);
+        // Check if we have empty events or if all events have low impact
+        // This could indicate scraping issues
+        if (events.length === 0 || events.every(e => e.impact === 'low')) {
+          console.log("Data quality check failed - empty or all low impact");
+          // Try forcing a cache refresh
+          forexFactoryService.clearCache(year, month);
+          const refreshedEvents = await forexFactoryService.getEvents(year, month);
+          
+          if (refreshedEvents.length > 0 && !refreshedEvents.every(e => e.impact === 'low')) {
+            setEconomicEvents(refreshedEvents);
+          } else {
+            setIsMockData(true);
+            setEconomicEvents(events); // Use whatever we have
+          }
+        } else {
+          setEconomicEvents(events);
+          setIsMockData(false);
+        }
+        
         setLastRefreshed(new Date());
         
         // If we were using mock data before and now we got real data, show success toast
@@ -101,6 +120,15 @@ export const useEconomicEvents = (currentMonth: Date) => {
       
       // Force refresh by fetching again
       const events = await forexFactoryService.getEvents(year, month);
+      
+      // Check for data quality issues
+      if (events.length === 0 || events.every(e => e.impact === 'low')) {
+        console.log("Refresh data quality check failed - empty or all low impact");
+        setIsMockData(true);
+        toast.warning('Calendar data may be incomplete. Using best available data.');
+      } else {
+        setIsMockData(false);
+      }
       
       setEconomicEvents(events);
       setLastRefreshed(new Date());

@@ -118,22 +118,51 @@ class ForexFactoryService {
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, 'text/html');
     
-    // Find all event rows in the calendar table
-    // Try both class names as Forex Factory might use different classes
-    const eventRows = doc.querySelectorAll('.calendar_row, .calendar__row');
+    // Find all calendar weeks in the table
+    const calendarWeeks = doc.querySelectorAll('.calendar__week, .calendar_week');
     
-    if (eventRows.length === 0) {
-      console.error('No event rows found in HTML');
-      return events;
+    if (calendarWeeks.length === 0) {
+      console.error('No calendar weeks found in HTML');
+      
+      // Fallback to looking for individual rows if weeks aren't found
+      const eventRows = doc.querySelectorAll('.calendar__row, .calendar_row');
+      if (eventRows.length === 0) {
+        return events;
+      } else {
+        console.log(`Found ${eventRows.length} event rows in HTML (without weeks)`);
+        return this.parseEventRows(eventRows, year, month);
+      }
     }
     
-    console.log(`Found ${eventRows.length} event rows in HTML`);
+    console.log(`Found ${calendarWeeks.length} calendar weeks in HTML`);
     
+    // Process each week
+    calendarWeeks.forEach(week => {
+      // Find the date header for this week
+      const dateHeader = week.querySelector('.calendar__date-header, .calendar_date-header');
+      const dateText = dateHeader ? dateHeader.textContent?.trim() : '';
+      
+      // Find all event rows in this week
+      const eventRows = week.querySelectorAll('.calendar__row, .calendar_row');
+      console.log(`Found ${eventRows.length} events in week: ${dateText}`);
+      
+      // Extract and add events from this week
+      const weekEvents = this.parseEventRows(eventRows, year, month);
+      events.push(...weekEvents);
+    });
+    
+    console.log(`Successfully parsed ${events.length} events`);
+    return events;
+  }
+  
+  // Parse individual event rows to extract event data
+  private parseEventRows(rows: NodeListOf<Element>, year: number, month: number): ForexEvent[] {
+    const events: ForexEvent[] = [];
     let currentDate = new Date(year, month, 1);
     
-    eventRows.forEach(row => {
+    rows.forEach(row => {
       try {
-        // Extract date if present - try different selectors
+        // Extract date if present
         const dateCell = row.querySelector('.calendar__date, .calendar_date');
         if (dateCell && dateCell.textContent?.trim()) {
           const dateText = dateCell.textContent.trim();
@@ -144,7 +173,7 @@ class ForexFactoryService {
           }
         }
         
-        // Extract event data - trying different selectors
+        // Extract event data
         const currencyElement = row.querySelector('.calendar__currency, .calendar_currency');
         const impactElement = row.querySelector('.calendar__impact, .calendar_impact');
         const eventElement = row.querySelector('.calendar__event, .calendar_event');
@@ -154,12 +183,53 @@ class ForexFactoryService {
         const previousElement = row.querySelector('.calendar__previous, .calendar_previous');
         
         if (currencyElement && eventElement) {
-          // Determine impact level
+          // Determine impact level - check classes, images, and styles
           let impact: 'high' | 'medium' | 'low' = 'low';
+          
           if (impactElement) {
             const impactClass = impactElement.className;
-            if (impactClass.includes('high') || impactClass.includes('red')) impact = 'high';
-            else if (impactClass.includes('medium') || impactClass.includes('orange') || impactClass.includes('yel')) impact = 'medium';
+            const impactStyle = impactElement.getAttribute('style') || '';
+            const impactImage = impactElement.querySelector('img');
+            const impactSrc = impactImage ? impactImage.getAttribute('src') : '';
+            
+            // Check for specific classes
+            if (
+              impactClass.includes('high') || 
+              impactClass.includes('red') || 
+              impactStyle.includes('red') ||
+              (impactSrc && (
+                impactSrc.includes('red') || 
+                impactSrc.includes('high') || 
+                impactSrc.includes('bull-4')
+              ))
+            ) {
+              impact = 'high';
+            }
+            else if (
+              impactClass.includes('medium') || 
+              impactClass.includes('orange') || 
+              impactClass.includes('yel') ||
+              impactStyle.includes('orange') || 
+              impactStyle.includes('yellow') ||
+              (impactSrc && (
+                impactSrc.includes('orange') || 
+                impactSrc.includes('yellow') || 
+                impactSrc.includes('medium') || 
+                impactSrc.includes('bull-3')
+              ))
+            ) {
+              impact = 'medium';
+            }
+            
+            // Additionally check for color in background or icon
+            const bgColor = window.getComputedStyle(impactElement).backgroundColor;
+            if (bgColor) {
+              if (bgColor.includes('255, 0, 0') || bgColor.includes('255, 51, 51') || bgColor.includes('#ff')) {
+                impact = 'high';
+              } else if (bgColor.includes('255, 165, 0') || bgColor.includes('255, 255, 0') || bgColor.includes('#fa')) {
+                impact = 'medium';
+              }
+            }
           }
           
           // Format time
@@ -182,7 +252,6 @@ class ForexFactoryService {
       }
     });
     
-    console.log(`Successfully parsed ${events.length} events`);
     return events;
   }
   

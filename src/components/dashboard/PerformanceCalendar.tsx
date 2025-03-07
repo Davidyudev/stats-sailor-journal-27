@@ -13,7 +13,7 @@ import { useCalendarDates } from '@/hooks/useCalendarDates';
 import { useEconomicEvents } from '@/hooks/useEconomicEvents';
 import { useCalendarDetails } from '@/hooks/useCalendarDetails';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, AlertCircle } from 'lucide-react';
+import { RefreshCw, AlertCircle, InfoCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { Toaster } from 'sonner';
 
@@ -105,7 +105,7 @@ export const PerformanceCalendar = ({
                 {isMockData && (
                   <div className="flex items-center text-xs text-warning">
                     <AlertCircle className="h-3 w-3 mr-1" />
-                    <span>Using mock data</span>
+                    <span>Using simulated data - click Refresh to try again</span>
                   </div>
                 )}
                 {lastRefreshed && (
@@ -134,6 +134,24 @@ export const PerformanceCalendar = ({
           />
           
           <CalendarLegend />
+          
+          {/* Data quality information */}
+          {isMockData && (
+            <div className="mt-4 text-sm p-2 border-2 border-dashed border-warning rounded-md bg-warning/10">
+              <p className="flex items-center">
+                <AlertCircle className="h-4 w-4 mr-2 text-warning" />
+                <span>
+                  The economic calendar is currently showing simulated data. This can happen due to:
+                </span>
+              </p>
+              <ul className="list-disc ml-8 mt-1 text-xs text-muted-foreground">
+                <li>Server connectivity issues</li>
+                <li>Changes to the Forex Factory website format</li>
+                <li>Temporary network problems</li>
+              </ul>
+              <p className="text-xs mt-2">Try clicking the Refresh button to fetch the most up-to-date data.</p>
+            </div>
+          )}
         </div>
         
         {/* Only render the details dialog if there's a selected date */}
