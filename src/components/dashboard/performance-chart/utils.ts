@@ -30,17 +30,36 @@ export const prepareChartData = (filteredData: DailyPerformance[]) => {
   // Make sure we sort the data by date first to ensure proper accumulation
   const sortedData = [...filteredData].sort((a, b) => a.date.getTime() - b.date.getTime());
   
+  // Add a starting point with 0 value if there's any data
+  const result = [];
+  if (sortedData.length > 0) {
+    const firstDay = sortedData[0];
+    // Add a data point for the day before the first day to start accumulation at 0
+    const startDate = new Date(firstDay.date);
+    startDate.setDate(startDate.getDate() - 1);
+    
+    result.push({
+      date: startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      profit: 0,
+      accumulatedProfit: 0,
+      trades: 0,
+      winRate: 0
+    });
+  }
+  
   let accumulated = 0;
-  return sortedData.map(item => {
+  sortedData.forEach(item => {
     accumulated += item.profitLoss;
-    return {
+    result.push({
       date: item.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
       profit: item.profitLoss,
       accumulatedProfit: accumulated,
       trades: item.trades,
       winRate: item.winRate
-    };
+    });
   });
+  
+  return result;
 };
 
 export const calculateTotalProfit = (filteredData: DailyPerformance[]): number => {
