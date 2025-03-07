@@ -78,14 +78,24 @@ class ForexFactoryService {
       }
       
       // Check if the HTML contains calendar data
-      if (!html.includes('calendar__row') && !html.includes('calendar_row')) {
+      if (!html.includes('calendarComponentStates')) {
         throw new Error('HTML does not contain expected calendar data');
       }
       
-      const events = this.parseForexFactoryHtml(html, year, month);
+      // Extract calendar data from the JSON embedded in the page
+      const events = this.extractCalendarData(html, year, month);
       
       if (events.length === 0) {
-        throw new Error('Failed to parse any events from HTML');
+        throw new Error('Failed to extract any events from HTML');
+      }
+      
+      // Check if we have a reasonable distribution of impact levels
+      const hasHighImpact = events.some(e => e.impact === 'high');
+      const hasMediumImpact = events.some(e => e.impact === 'medium');
+      
+      if (!hasHighImpact && !hasMediumImpact) {
+        console.warn('Warning: No high or medium impact events found in the data');
+        throw new Error('Data quality check failed - all events are low impact');
       }
       
       // Cache the results
@@ -104,15 +114,94 @@ class ForexFactoryService {
     }
   }
   
-  // Generate mock events as a fallback
-  private generateMockEvents(year: number, month: number): ForexEvent[] {
-    console.log("Falling back to mock data");
-    const seed = year * 100 + month;
-    const random = new SeededRandom(seed);
-    return generateMonthEvents(year, month, random);
+  // Extract calendar data from the Forex Factory page
+  private extractCalendarData(html: string, year: number, month: number): ForexEvent[] {
+    try {
+      // Look for the embedded calendar data
+      const calendarStateRegex = /window\.calendarComponentStates\[\d+\]\s*=\s*({[\s\S]*?});/;
+      const match = html.match(calendarStateRegex);
+      
+      if (!match || !match[1]) {
+        console.error('Could not find calendar data in the HTML');
+        return [];
+      }
+      
+      // Extract and parse the JSON data
+      let calendarData;
+      try {
+        // Clean the JSON string before parsing
+        const jsonStr = match[1].replace(/\\"/g, '"');
+        calendarData = Function('return ' + jsonStr)();
+      } catch (e) {
+        console.error('Error parsing calendar JSON data:', e);
+        return [];
+      }
+      
+      if (!calendarData || !calendarData.days) {
+        console.error('Invalid calendar data structure');
+        return [];
+      }
+      
+      // Process each day and its events
+      const events: ForexEvent[] = [];
+      
+      calendarData.days.forEach((day: any) => {
+        if (!day.events || !Array.isArray(day.events)) {
+          return;
+        }
+        
+        // Extract the date from the day
+        const dayTimestamp = day.dateline * 1000; // Convert to milliseconds
+        const dateObj = new Date(dayTimestamp);
+        
+        day.events.forEach((event: any) => {
+          // Skip events without proper data
+          if (!event.currency || !event.name) {
+            return;
+          }
+          
+          // Determine impact level based on impactClass
+          let impact: 'high' | 'medium' | 'low' = 'low';
+          
+          if (event.impactClass) {
+            if (event.impactClass.includes('red') || event.impactTitle?.includes('High Impact')) {
+              impact = 'high';
+            } else if (event.impactClass.includes('orange') || 
+                      event.impactClass.includes('yel') || 
+                      event.impactTitle?.includes('Medium Impact')) {
+              impact = 'medium';
+            }
+          }
+          
+          // Create event time
+          let eventTime = 'All Day';
+          if (event.timeLabel && !event.timeMasked) {
+            eventTime = event.timeLabel;
+          }
+          
+          // Create the event object
+          events.push({
+            date: dateObj,
+            time: eventTime,
+            currency: event.currency,
+            impact: impact,
+            name: event.name,
+            forecast: event.forecast || '',
+            previous: event.previous || '',
+            actual: event.actual || undefined
+          });
+        });
+      });
+      
+      console.log(`Successfully extracted ${events.length} events from Forex Factory`);
+      return events;
+    } catch (error) {
+      console.error('Error extracting calendar data:', error);
+      return [];
+    }
   }
   
-  // Parse HTML from Forex Factory to extract event data
+  // Fallback to the original HTML parsing if needed
   private parseForexFactoryHtml(html: string, year: number, month: number): ForexEvent[] {
     const events: ForexEvent[] = [];
     const parser = new DOMParser();
@@ -255,6 +344,14 @@ class ForexFactoryService {
     return events;
   }
   
+  // Generate mock events as a fallback
+  private generateMockEvents(year: number, month: number): ForexEvent[] {
+    console.log("Falling back to mock data");
+    const seed = year * 100 + month;
+    const random = new SeededRandom(seed);
+    return generateMonthEvents(year, month, random);
+  }
+  
   // Format time from 24h to AM/PM
   private formatTimeToAMPM(time: string): string {
     if (time === "All Day" || !time || time === "") return "All Day";
@@ -326,3 +423,4 @@ forexFactoryService.setupPeriodicRefresh();
 
 // Re-export types for convenience
 export type { ForexEvent } from './types';
+

@@ -32,44 +32,23 @@ export const useEconomicEvents = (currentMonth: Date) => {
         
         // Store the current real data status before fetching
         const wasMockData = isMockData;
-        setIsMockData(false); // Reset mock data flag
         
-        // Add a console.log to help debugging
-        console.log(`Fetching economic events from Forex Factory for ${year}-${month+1}`);
-        
-        // Try to get events and detect if mock data was returned
-        const originalConsoleError = console.error;
-        console.error = function(...args) {
-          originalConsoleError.apply(console, args);
-          if (args[0] === "Failed to fetch economic events from Forex Factory:") {
-            setIsMockData(true);
-          }
-        };
-        
+        // Try to get events
         const events = await forexFactoryService.getEvents(year, month);
-        
-        // Restore the original console.error
-        console.error = originalConsoleError;
         
         // Check if we have empty events or if all events have low impact
         // This could indicate scraping issues
-        if (events.length === 0 || events.every(e => e.impact === 'low')) {
+        const hasHighImpact = events.some(e => e.impact === 'high');
+        const hasMediumImpact = events.some(e => e.impact === 'medium');
+        
+        if (events.length === 0 || (!hasHighImpact && !hasMediumImpact)) {
           console.log("Data quality check failed - empty or all low impact");
-          // Try forcing a cache refresh
-          forexFactoryService.clearCache(year, month);
-          const refreshedEvents = await forexFactoryService.getEvents(year, month);
-          
-          if (refreshedEvents.length > 0 && !refreshedEvents.every(e => e.impact === 'low')) {
-            setEconomicEvents(refreshedEvents);
-          } else {
-            setIsMockData(true);
-            setEconomicEvents(events); // Use whatever we have
-          }
+          setIsMockData(true);
         } else {
-          setEconomicEvents(events);
           setIsMockData(false);
         }
         
+        setEconomicEvents(events);
         setLastRefreshed(new Date());
         
         // If we were using mock data before and now we got real data, show success toast
@@ -113,7 +92,6 @@ export const useEconomicEvents = (currentMonth: Date) => {
       
       // Store the current mock data status before refreshing
       const wasMockData = isMockData;
-      setIsMockData(false); // Reset the mock data flag
       
       // Clear cache and force refresh
       forexFactoryService.clearCache(year, month);
@@ -122,8 +100,11 @@ export const useEconomicEvents = (currentMonth: Date) => {
       const events = await forexFactoryService.getEvents(year, month);
       
       // Check for data quality issues
-      if (events.length === 0 || events.every(e => e.impact === 'low')) {
-        console.log("Refresh data quality check failed - empty or all low impact");
+      const hasHighImpact = events.some(e => e.impact === 'high');
+      const hasMediumImpact = events.some(e => e.impact === 'medium');
+      
+      if (events.length === 0 || (!hasHighImpact && !hasMediumImpact)) {
+        console.log("Refresh data quality check failed - no high/medium impact events");
         setIsMockData(true);
         toast.warning('Calendar data may be incomplete. Using best available data.');
       } else {
