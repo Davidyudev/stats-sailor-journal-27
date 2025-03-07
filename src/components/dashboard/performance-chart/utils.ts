@@ -30,8 +30,11 @@ export const prepareChartData = (filteredData: DailyPerformance[]) => {
   // Make sure we sort the data by date first to ensure proper accumulation
   const sortedData = [...filteredData].sort((a, b) => a.date.getTime() - b.date.getTime());
   
-  // Add a starting point with 0 value if there's any data
+  // Always create an initial zero point data entry
   const result = [];
+  
+  // Add a starting point with 0 value regardless of data presence
+  // This ensures the chart always starts from 0
   if (sortedData.length > 0) {
     const firstDay = sortedData[0];
     // Add a data point for the day before the first day to start accumulation at 0
