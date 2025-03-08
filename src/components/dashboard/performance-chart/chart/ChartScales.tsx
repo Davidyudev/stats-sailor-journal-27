@@ -41,22 +41,14 @@ export const createScales = (
   // Calculate the zero position
   const zeroY = yDaily(0);
 
-  // Calculate accumulated range and adjust domain to maintain proper scaling
-  const accRange = Math.max(Math.abs(minAccumulated), Math.abs(maxAccumulated));
-  const accMin = Math.min(minAccumulated - accRange * 0.1, 0);
-  const accMax = Math.max(maxAccumulated + accRange * 0.1, 0);
+  // Ensure zero is also in the accumulated domain
+  const accMin = Math.min(minAccumulated, 0);
+  const accMax = Math.max(maxAccumulated, 0);
 
-  // Y scale for accumulated P/L (right)
-  // Determine how much of the chart height is below zero for daily scale
-  const zeroPercent = (zeroY) / height;
-  
-  // Apply that same percentage to the accumulated scale
+  // Y scale for accumulated P/L (right), ensuring 0 aligns with zeroY
   const yAccumulated = d3.scaleLinear()
     .domain([accMin, accMax])
-    .range([
-      height,  // Bottom position stays the same
-      0        // Top position stays the same
-    ]);
+    .range([yDaily(accMin), yDaily(accMax)]);
 
   return { x, yDaily, yAccumulated, zeroY };
 };
