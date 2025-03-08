@@ -38,13 +38,15 @@ export const createScales = (
   // Zero line in daily scale
   const zeroY = yDaily(0);
 
-  // Min/max for accumulated P/L, also always include 0
+  // Min/max for accumulated P/L
   const accMin = Math.min(d3.min(accumulatedValues)!, 0) * 1.1; 
   const accMax = Math.max(d3.max(accumulatedValues)!, 0) * 1.1;
-
+  
+  // Create a properly proportioned scale for accumulated values
+  // Instead of trying to align at zeroY, use the full height for proper proportioning
   const yAccumulated = d3.scaleLinear()
-    .domain([accMin, 0, accMax])
-    .range([height, zeroY, 0]);
+    .domain([accMin, accMax])
+    .range([height, 0]);
 
   return { x, yDaily, yAccumulated, zeroY };
 };
