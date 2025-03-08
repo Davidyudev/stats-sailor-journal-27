@@ -12,12 +12,28 @@ interface ChartComponentProps {
 export const ChartComponent = ({ data }: ChartComponentProps) => {
   // Find maximum values for scaling
   const maxAccumulated = Math.max(...data.map(item => item.accumulatedProfit || 0));
+  const minAccumulated = Math.min(...data.map(item => item.accumulatedProfit || 0));
   const dailyValues = data.map(item => item.profit || 0);
   const minDailyValue = Math.min(...dailyValues);
   const maxDailyValue = Math.max(...dailyValues);
   
-  // Calculate the absolute max for proper scaling
-  const absMax = Math.max(Math.abs(minDailyValue), Math.abs(maxDailyValue));
+  // Calculate the daily range for proper scaling
+  const dailyRange = Math.max(Math.abs(minDailyValue), Math.abs(maxDailyValue));
+  
+  // Calculate dynamic min/max for daily P/L based on data distribution
+  // This allows the zero line to move based on data distribution
+  let yMin = minDailyValue - (dailyRange * 0.1); // Add 10% padding
+  let yMax = maxDailyValue + (dailyRange * 0.1); // Add 10% padding
+  
+  // If all values are positive, include zero
+  if (minDailyValue > 0) {
+    yMin = 0;
+  }
+  
+  // If all values are negative, include zero
+  if (maxDailyValue < 0) {
+    yMax = 0;
+  }
   
   // Prepare chart data
   const chartData = {
@@ -87,8 +103,8 @@ export const ChartComponent = ({ data }: ChartComponentProps) => {
               fontWeight: 500
             }
           },
-          min: -absMax,
-          max: absMax,
+          min: yMin,
+          max: yMax,
           labels: {
             style: {
               colors: 'hsl(var(--foreground))'
@@ -106,8 +122,9 @@ export const ChartComponent = ({ data }: ChartComponentProps) => {
               fontWeight: 500
             }
           },
-          min: -Math.max(maxAccumulated, 1),
-          max: Math.max(maxAccumulated, 1),
+          // Scale accumulated axis based on actual accumulated data
+          min: Math.min(minAccumulated * 1.1, 0), // Include 0 if all values are positive
+          max: Math.max(maxAccumulated * 1.1, 0), // Include 0 if all values are negative
           labels: {
             style: {
               colors: '#0EA5E9'
