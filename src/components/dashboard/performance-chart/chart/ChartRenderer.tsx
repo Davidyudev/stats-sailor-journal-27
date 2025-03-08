@@ -32,11 +32,11 @@ export const ChartRenderer = ({ svgRef, data }: ChartRendererProps) => {
       .attr("transform", `translate(${margin.left},${margin.top})`);
     
     // Create scales
-    const { x, yDaily, yAccumulated } = createScales(data, width, height);
+    const { x, yDaily, yAccumulated, zeroY } = createScales(data, width, height);
     
     // Draw axes and grid lines
-    drawAxes({ svg, x, yDaily, yAccumulated, width, height });
-    drawGridLines({ svg, x, yDaily, yAccumulated, width, height });
+    drawAxes({ svg, x, yDaily, yAccumulated, width, height, zeroY });
+    drawGridLines({ svg, x, yDaily, yAccumulated, width, height, zeroY });
     
     // Draw chart elements
     drawBars({ svg, data, x, yDaily, yAccumulated });
