@@ -6,6 +6,8 @@ export interface TooltipData {
   date: string;
   profit: number;
   accumulatedProfit: number;
+  trades?: number;
+  winRate?: number;
 }
 
 export const createTooltip = () => {
@@ -25,15 +27,27 @@ export const createTooltip = () => {
 };
 
 export const showTooltip = (tooltip: d3.Selection<HTMLDivElement, unknown, HTMLElement, any>, event: MouseEvent, data: TooltipData) => {
+  // Format tooltip content
+  let tooltipContent = `
+    <div>Date: ${data.date}</div>
+    <div>Daily P/L: ${data.profit >= 0 ? "+" : ""}${data.profit.toFixed(2)}</div>
+    <div>Accumulated P/L: ${data.accumulatedProfit >= 0 ? "+" : ""}${data.accumulatedProfit.toFixed(2)}</div>
+  `;
+  
+  // Add trades and win rate if available
+  if (data.trades !== undefined) {
+    tooltipContent += `<div>Trades: ${data.trades}</div>`;
+  }
+  
+  if (data.winRate !== undefined) {
+    tooltipContent += `<div>Win Rate: ${(data.winRate * 100).toFixed(0)}%</div>`;
+  }
+  
   tooltip
     .style("opacity", 1)
     .style("left", `${event.pageX + 10}px`)
     .style("top", `${event.pageY - 10}px`)
-    .html(`
-      <div>Date: ${data.date}</div>
-      <div>Daily P/L: ${data.profit >= 0 ? "+" : ""}${data.profit.toFixed(2)}</div>
-      <div>Accumulated P/L: ${data.accumulatedProfit >= 0 ? "+" : ""}${data.accumulatedProfit.toFixed(2)}</div>
-    `);
+    .html(tooltipContent);
 };
 
 export const hideTooltip = (tooltip: d3.Selection<HTMLDivElement, unknown, HTMLElement, any>) => {
