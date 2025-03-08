@@ -19,6 +19,30 @@ interface ChartComponentProps {
 }
 
 export const ChartComponent = ({ data }: ChartComponentProps) => {
+  // Find min/max values for proper scaling
+  const profits = data.map(item => item.profit);
+  const maxProfit = Math.max(...profits, 0);
+  const minProfit = Math.min(...profits, 0);
+  
+  const accumulated = data.map(item => item.accumulatedProfit);
+  const maxAccumulated = Math.max(...accumulated, 0);
+  const minAccumulated = Math.min(...accumulated, 0);
+  
+  // Calculate domain padding to ensure zero is properly positioned
+  const leftDomainPadding = Math.abs(minProfit) > 0 ? 0.1 : 0;
+  const rightDomainPadding = Math.abs(minAccumulated) > 0 ? 0.1 : 0;
+  
+  // Calculate domains to align the zero point
+  const leftDomain = [
+    minProfit < 0 ? minProfit * (1 + leftDomainPadding) : 0, 
+    maxProfit * 1.1
+  ];
+  
+  const rightDomain = [
+    minAccumulated < 0 ? minAccumulated * (1 + rightDomainPadding) : 0, 
+    maxAccumulated * 1.1
+  ];
+
   return (
     <div className="h-64 w-full">
       <ResponsiveContainer width="100%" height="100%">
@@ -39,7 +63,7 @@ export const ChartComponent = ({ data }: ChartComponentProps) => {
             tickLine={false}
             stroke="hsl(var(--chart-grid))"
             tickFormatter={(value) => `${value}`}
-            domain={['auto', 'auto']}
+            domain={leftDomain}
             label={{ 
               value: 'Daily P/L', 
               angle: -90, 
@@ -59,7 +83,7 @@ export const ChartComponent = ({ data }: ChartComponentProps) => {
             tickLine={false}
             stroke="#0EA5E9"
             tickFormatter={(value) => `${value}`}
-            domain={[0, 'auto']}
+            domain={rightDomain}
             label={{ 
               value: 'Accumulated', 
               angle: 90, 
@@ -75,6 +99,7 @@ export const ChartComponent = ({ data }: ChartComponentProps) => {
           <Tooltip content={<CustomTooltip />} />
           <Legend />
           <ReferenceLine y={0} yAxisId="left" stroke="hsl(var(--neutral))" />
+          <ReferenceLine y={0} yAxisId="right" stroke="hsl(var(--neutral))" strokeOpacity={0.5} strokeDasharray="3 3" />
           <Bar 
             yAxisId="left"
             dataKey="profit" 
@@ -83,6 +108,7 @@ export const ChartComponent = ({ data }: ChartComponentProps) => {
             name="Daily P/L"
             isAnimationActive={true}
             animationDuration={1500}
+            minPointSize={3}
           />
           <Line 
             yAxisId="right"
