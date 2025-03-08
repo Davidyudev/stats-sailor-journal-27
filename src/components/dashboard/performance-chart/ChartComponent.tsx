@@ -34,6 +34,10 @@ export const ChartComponent = ({ data }: ChartComponentProps) => {
   const rightRange = rightMax - rightMin;
   const rightAxisMin = rightMin - (leftZeroPosition * rightRange);
   
+  // Ensure left axis always includes zero by adjusting domain if needed
+  const adjustedLeftMin = Math.min(0, leftMin);
+  const adjustedLeftMax = Math.max(0, leftMax);
+  
   return (
     <div className="h-64 w-full">
       <ResponsiveContainer width="100%" height="100%">
@@ -54,7 +58,7 @@ export const ChartComponent = ({ data }: ChartComponentProps) => {
             tickLine={false}
             stroke="hsl(var(--chart-grid))"
             tickFormatter={(value) => Number(value).toFixed(2)}
-            domain={[leftMin, leftMax]}
+            domain={[adjustedLeftMin, adjustedLeftMax]}
             label={{ 
               value: 'Daily P/L', 
               angle: -90, 
@@ -66,7 +70,6 @@ export const ChartComponent = ({ data }: ChartComponentProps) => {
               }, 
               offset: 0 
             }}
-            includeZero={true}
           />
           <YAxis 
             yAxisId="right"
