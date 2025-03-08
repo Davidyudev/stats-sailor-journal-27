@@ -53,7 +53,7 @@ export const ChartComponent = ({ data }: ChartComponentProps) => {
             tick={{ fontSize: 12, fill: "hsl(var(--foreground))" }} 
             tickLine={false}
             stroke="hsl(var(--chart-grid))"
-            tickFormatter={(value) => `${value}`}
+            tickFormatter={(value) => Number(value).toFixed(2)}
             domain={[leftMin, leftMax]}
             label={{ 
               value: 'Daily P/L', 
@@ -66,6 +66,7 @@ export const ChartComponent = ({ data }: ChartComponentProps) => {
               }, 
               offset: 0 
             }}
+            includeZero={true}
           />
           <YAxis 
             yAxisId="right"
@@ -73,7 +74,7 @@ export const ChartComponent = ({ data }: ChartComponentProps) => {
             tick={{ fontSize: 12, fill: "#0EA5E9" }} 
             tickLine={false}
             stroke="#0EA5E9"
-            tickFormatter={(value) => `${value}`}
+            tickFormatter={(value) => Number(value).toFixed(2)}
             domain={[rightAxisMin, rightMax]}
             label={{ 
               value: 'Accumulated', 
@@ -89,7 +90,7 @@ export const ChartComponent = ({ data }: ChartComponentProps) => {
           />
           <Tooltip content={<CustomTooltip />} />
           <Legend />
-          <ReferenceLine y={0} yAxisId="left" stroke="hsl(var(--neutral))" />
+          <ReferenceLine y={0} yAxisId="left" stroke="hsl(var(--neutral))" strokeWidth={2} />
           <Bar 
             yAxisId="left"
             dataKey="profit" 
