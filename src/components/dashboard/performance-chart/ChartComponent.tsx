@@ -24,16 +24,20 @@ export const ChartComponent = ({ data }: ChartComponentProps) => {
   const maxProfit = Math.max(...data.map(d => d.profit));
   const maxAccumulated = Math.max(...data.map(d => d.accumulatedProfit));
   
-  // Calculate appropriate domains
-  const leftDomain = [
-    Math.min(minProfit, 0), // Ensure 0 is included for negative values
-    Math.max(maxProfit, 0)  // Ensure 0 is included for positive values
-  ];
+  // Calculate the left axis domain to ensure it's symmetrical around zero
+  // This ensures the zero point is centered when there are both positive and negative values
+  const leftDomainMax = Math.max(Math.abs(minProfit), Math.abs(maxProfit));
+  const leftDomain = [-leftDomainMax, leftDomainMax];
   
-  const rightDomain = [
-    0, // Start at 0 for accumulated profit
-    Math.max(maxAccumulated, 1) // Ensure positive scale
-  ];
+  // Calculate right axis domain that will align its zero with the left axis zero
+  // We need to determine what percentage of the left axis range is negative
+  const leftRangeSize = leftDomainMax * 2; // Total size of left domain range
+  const leftNegativeProportion = leftDomainMax / leftRangeSize; // Proportion of left domain that's negative
+  
+  // The right domain should have its zero at the same position as the left domain's zero
+  // Calculate the maximum value for right domain to ensure proper alignment
+  const rightDomainMax = maxAccumulated / (1 - leftNegativeProportion);
+  const rightDomain = [0, rightDomainMax];
 
   return (
     <div className="h-64 w-full">
