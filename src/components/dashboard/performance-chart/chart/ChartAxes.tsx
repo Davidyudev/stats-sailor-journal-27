@@ -63,33 +63,31 @@ export const drawAxes = ({ svg, x, yDaily, yAccumulated, width, height }: AxesPr
     .style("font-size", "12px")
     .style("font-weight", "500")
     .text("Accumulated");
+};
 
-  // Common zero line for both scales
-  // This will show at the same vertical position for both metrics
+export const drawGridLines = ({ svg, yDaily, yAccumulated, width, height }: AxesProps) => {
+  // Add a horizontal line at y=0 for daily P/L
   svg.append("line")
     .attr("x1", 0)
     .attr("x2", width)
     .attr("y1", yDaily(0))
     .attr("y2", yDaily(0))
     .attr("stroke", "hsl(var(--foreground))")
-    .attr("stroke-width", 1.5)
-    .attr("stroke-opacity", 0.7);
-};
+    .attr("stroke-width", 1)
+    .attr("stroke-dasharray", "4");
 
-export const drawGridLines = ({ svg, yDaily, width, height }: AxesProps) => {
-  // Add horizontal grid lines based on daily ticks
-  const tickValues = yDaily.ticks(5);
+  // Add a horizontal line at y=0 for accumulated P/L if it's within the visible range
+  const accMin = yAccumulated.domain()[0];
+  const accMax = yAccumulated.domain()[1];
   
-  tickValues.forEach(tick => {
-    if (tick !== 0) {  // Skip zero as it's handled separately
-      svg.append("line")
-        .attr("x1", 0)
-        .attr("x2", width)
-        .attr("y1", yDaily(tick))
-        .attr("y2", yDaily(tick))
-        .attr("stroke", "hsl(var(--chart-grid))")
-        .attr("stroke-width", 1)
-        .attr("stroke-dasharray", "4");
-    }
-  });
+  if (accMin <= 0 && accMax >= 0) {
+    svg.append("line")
+      .attr("x1", 0)
+      .attr("x2", width)
+      .attr("y1", yAccumulated(0))
+      .attr("y2", yAccumulated(0))
+      .attr("stroke", "#0EA5E9")
+      .attr("stroke-width", 1)
+      .attr("stroke-dasharray", "4");
+  }
 };

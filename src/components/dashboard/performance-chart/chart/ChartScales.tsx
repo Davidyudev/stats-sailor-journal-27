@@ -1,3 +1,4 @@
+
 import * as d3 from 'd3';
 
 export interface ChartScalesResult {
@@ -36,33 +37,17 @@ export const createScales = (
   yMax = Math.max(yMax, 0);
   
   // For accumulated P/L, always ensure 0 is included
-  const accMin = Math.min(minAccumulated - Math.abs(minAccumulated * 0.1), 0);
-  const accMax = Math.max(maxAccumulated + Math.abs(maxAccumulated * 0.1), 0);
+  const accMin = Math.min(minAccumulated * 1.1, 0);
+  const accMax = Math.max(maxAccumulated * 1.1, 0);
   
-  // Create the daily scale first
+  // Y scales - one for daily P/L (left) and one for accumulated P/L (right)
   const yDaily = d3.scaleLinear()
     .domain([yMin, yMax])
     .range([height, 0]);
   
-  // Get the position of zero on the daily scale
-  const zeroPosition = yDaily(0);
-  
-  // Calculate the percentage position of zero in the daily scale
-  const zeroPercent = zeroPosition / height;
-  
-  // Calculate what the range values should be for accumulated scale
-  // to ensure zero is at the same position, keeping the top position the same
-  // and adjusting the bottom position
-  const accRange = [
-    height * (1 + (zeroPercent / (1 - zeroPercent))), // Bottom position adjusted
-    0 // Top position stays the same
-  ];
-
-  // Create accumulated scale with aligned zero position
   const yAccumulated = d3.scaleLinear()
     .domain([accMin, accMax])
-    .range(accRange)
-    .nice();
-  
+    .range([height, 0]);
+    
   return { x, yDaily, yAccumulated };
 };
