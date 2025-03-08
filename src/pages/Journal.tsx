@@ -6,6 +6,7 @@ import { mockDataService } from '@/lib/services/mockDataService';
 import { JournalHeader } from '@/components/journal/JournalHeader';
 import { TradesTable } from '@/components/journal/TradesTable';
 import { TradeDetails } from '@/components/journal/TradeDetails';
+import { TradeEditDialog } from '@/components/journal/TradeEditDialog';
 import { useTradeFilters } from '@/components/journal/useTradeFilters';
 import { useTradeSorting } from '@/components/journal/useTradeSorting';
 import { toast } from 'sonner';
@@ -14,6 +15,8 @@ const Journal = () => {
   const [trades, setTrades] = useState<Trade[]>([]);
   const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingTrade, setEditingTrade] = useState<Trade | null>(null);
   
   useEffect(() => {
     setTimeout(() => {
@@ -49,9 +52,25 @@ const Journal = () => {
   };
 
   const handleEditTrade = (trade: Trade) => {
-    // This is a placeholder for future edit implementation
+    setEditingTrade(trade);
+    setIsEditDialogOpen(true);
     console.log('Edit trade:', trade);
-    // In a real application, you would navigate to an edit page or open a modal
+  };
+
+  const handleSaveTrade = (updatedTrade: Trade) => {
+    // Update the trade in the trades array
+    const updatedTrades = trades.map(trade => 
+      trade.id === updatedTrade.id ? updatedTrade : trade
+    );
+    
+    setTrades(updatedTrades);
+    
+    // If the edited trade was selected, update the selection
+    if (selectedTrade && selectedTrade.id === updatedTrade.id) {
+      setSelectedTrade(updatedTrade);
+    }
+    
+    console.log('Trade updated:', updatedTrade);
   };
 
   const handleDeleteTrade = (tradeId: string) => {
@@ -106,6 +125,13 @@ const Journal = () => {
           onDeleteTrade={handleDeleteTrade}
         />
       </div>
+
+      <TradeEditDialog 
+        isOpen={isEditDialogOpen}
+        onClose={() => setIsEditDialogOpen(false)}
+        trade={editingTrade}
+        onSave={handleSaveTrade}
+      />
     </div>
   );
 };
