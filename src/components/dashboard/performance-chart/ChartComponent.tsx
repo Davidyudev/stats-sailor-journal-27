@@ -1,5 +1,5 @@
 
-import { ReactNode, useMemo } from 'react';
+import { useMemo } from 'react';
 import {
   ComposedChart,
   Bar,
@@ -38,29 +38,38 @@ export const ChartComponent = ({ data }: ChartComponentProps) => {
     };
   }, [data]);
 
-  // Calculate domains for both axes to ensure zero is at the same position
-  const calculateAxisDomains = useMemo(() => {
-    // Find the proportion of negative and positive space needed for left axis
-    const totalLeftRange = Math.max(Math.abs(minProfit), Math.abs(maxProfit)) * 2;
-    const leftNegativeProportion = Math.abs(minProfit) / totalLeftRange;
-    const leftPositiveProportion = 1 - leftNegativeProportion;
-
-    // Scale the right axis to have the same zero position
-    const rightPositiveValue = maxAccumulated;
-    const rightNegativeValue = (leftNegativeProportion / leftPositiveProportion) * rightPositiveValue;
-
+  // Calculate proper domains to align the zero points
+  const { leftDomain, rightDomain } = useMemo(() => {
+    // Determine the range needed for the left axis (daily P/L)
+    const maxAbsProfit = Math.max(Math.abs(minProfit), Math.abs(maxProfit));
+    
+    // Use symmetrical padding for better visual appearance
+    const leftPadding = maxAbsProfit * 0.1;
+    
+    // Calculate domains with proper padding
     return {
-      leftDomain: [minProfit < 0 ? minProfit * 1.1 : 0, maxProfit * 1.1],
-      rightDomain: [rightNegativeValue * -1, rightPositiveValue * 1.1]
+      leftDomain: [
+        minProfit < 0 ? -maxAbsProfit - leftPadding : 0, 
+        maxAbsProfit + leftPadding
+      ],
+      rightDomain: [0, maxAccumulated * 1.1]
     };
   }, [minProfit, maxProfit, maxAccumulated]);
+
+  // Format number to be more readable
+  const formatYAxisTick = (value: number) => {
+    if (Math.abs(value) >= 1000) {
+      return `${(value / 1000).toFixed(1)}K`;
+    }
+    return value.toFixed(0);
+  };
 
   return (
     <div className="h-64 w-full">
       <ResponsiveContainer width="100%" height="100%">
         <ComposedChart
           data={data}
-          margin={{ top: 20, right: 30, left: 5, bottom: 5 }}
+          margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
         >
           <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--chart-grid))" />
           <XAxis 
@@ -74,8 +83,8 @@ export const ChartComponent = ({ data }: ChartComponentProps) => {
             tick={{ fontSize: 12, fill: "hsl(var(--foreground))" }} 
             tickLine={false}
             stroke="hsl(var(--chart-grid))"
-            tickFormatter={(value) => `${value}`}
-            domain={calculateAxisDomains.leftDomain}
+            tickFormatter={formatYAxisTick}
+            domain={leftDomain}
             label={{ 
               value: 'Daily P/L', 
               angle: -90, 
@@ -83,7 +92,8 @@ export const ChartComponent = ({ data }: ChartComponentProps) => {
               style: { 
                 textAnchor: 'middle', 
                 fill: 'hsl(var(--foreground))',
-                fontWeight: 500
+                fontWeight: 500,
+                fontSize: 12
               }, 
               offset: 0 
             }}
@@ -94,8 +104,8 @@ export const ChartComponent = ({ data }: ChartComponentProps) => {
             tick={{ fontSize: 12, fill: "#0EA5E9" }} 
             tickLine={false}
             stroke="#0EA5E9"
-            tickFormatter={(value) => `${value}`}
-            domain={calculateAxisDomains.rightDomain}
+            tickFormatter={formatYAxisTick}
+            domain={rightDomain}
             label={{ 
               value: 'Accumulated', 
               angle: 90, 
@@ -103,7 +113,8 @@ export const ChartComponent = ({ data }: ChartComponentProps) => {
               style: { 
                 textAnchor: 'middle', 
                 fill: '#0EA5E9',
-                fontWeight: 500
+                fontWeight: 500,
+                fontSize: 12
               }, 
               offset: 0 
             }}
@@ -111,7 +122,6 @@ export const ChartComponent = ({ data }: ChartComponentProps) => {
           <Tooltip content={<CustomTooltip />} />
           <Legend />
           <ReferenceLine y={0} yAxisId="left" stroke="hsl(var(--neutral))" />
-          <ReferenceLine y={0} yAxisId="right" stroke="hsl(var(--neutral))" strokeOpacity={0.3} strokeDasharray="3 3" />
           <Bar 
             yAxisId="left"
             dataKey="profit" 
@@ -120,6 +130,7 @@ export const ChartComponent = ({ data }: ChartComponentProps) => {
             name="Daily P/L"
             isAnimationActive={true}
             animationDuration={1500}
+            minPointSize={3}
           />
           <Line 
             yAxisId="right"
