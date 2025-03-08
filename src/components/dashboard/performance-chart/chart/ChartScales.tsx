@@ -1,3 +1,4 @@
+
 import * as d3 from 'd3';
 
 export interface ChartScalesResult {
@@ -48,14 +49,13 @@ export const createScales = (
   const zeroPosition = yDaily(0);
   
   // Calculate the percentage position of zero in the daily scale
-  const zeroPercent = zeroPosition / height;
+  const zeroPercent = (height - zeroPosition) / height;
   
   // Calculate what the range values should be for accumulated scale
-  // to ensure zero is at the same position, keeping the top position the same
-  // and adjusting the bottom position
+  // to ensure zero is at the same position
   const accRange = [
-    height * (1 + (zeroPercent / (1 - zeroPercent))), // Bottom position adjusted
-    0 // Top position stays the same
+    height, // Bottom position stays the same
+    height - (height * zeroPercent) // Top position adjusted
   ];
 
   // Create accumulated scale with aligned zero position
