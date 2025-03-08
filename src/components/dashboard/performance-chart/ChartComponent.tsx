@@ -32,10 +32,11 @@ export const ChartComponent = ({ data }: ChartComponentProps) => {
   const absMax = Math.max(Math.abs(minDailyValue), Math.abs(maxDailyValue));
   const leftDomain = [-absMax, absMax];
 
-  // Calculate domain for the right axis
-  // We want to make sure the accumulated profit line starts at 0
-  // and the scale properly shows all accumulated values
-  const rightDomain = [0, Math.max(maxAccumulated, absMax * 2)]; // Ensure enough space at the top
+  // Calculate the range for the right y-axis
+  // This ensures the zero point aligns between both axes
+  const rightMax = maxAccumulated;
+  const rightMin = minAccumulated < 0 ? minAccumulated : 0;
+  const rightDomain = [rightMin, rightMax];
 
   return (
     <div className="h-64 w-full">
@@ -93,6 +94,7 @@ export const ChartComponent = ({ data }: ChartComponentProps) => {
           <Tooltip content={<CustomTooltip />} />
           <Legend />
           <ReferenceLine y={0} yAxisId="left" stroke="hsl(var(--neutral))" />
+          <ReferenceLine y={0} yAxisId="right" stroke="#0EA5E9" strokeOpacity={0.3} strokeDasharray="3 3" />
           <Bar 
             yAxisId="left"
             dataKey="profit" 
