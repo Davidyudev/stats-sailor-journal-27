@@ -41,7 +41,15 @@ export const ChartComponent = ({ data }: ChartComponentProps) => {
         toolbar: {
           show: false
         },
-        background: 'transparent'
+        background: 'transparent',
+        animations: {
+          enabled: true,
+          easing: 'easeinout',
+          speed: 800
+        },
+        sparkline: {
+          enabled: false
+        }
       },
       stroke: {
         width: [0, 3],
@@ -68,7 +76,11 @@ export const ChartComponent = ({ data }: ChartComponentProps) => {
         labels: {
           style: {
             colors: 'hsl(var(--foreground))'
-          }
+          },
+          rotate: -45,
+          rotateAlways: false,
+          hideOverlappingLabels: true,
+          trim: true
         },
         axisBorder: {
           show: false
@@ -89,6 +101,7 @@ export const ChartComponent = ({ data }: ChartComponentProps) => {
           },
           min: -absMax,
           max: absMax,
+          tickAmount: 5,
           labels: {
             style: {
               colors: 'hsl(var(--foreground))'
@@ -108,6 +121,7 @@ export const ChartComponent = ({ data }: ChartComponentProps) => {
           },
           min: -Math.max(maxAccumulated, 1),
           max: Math.max(maxAccumulated, 1),
+          tickAmount: 5,
           labels: {
             style: {
               colors: '#0EA5E9'
@@ -118,7 +132,18 @@ export const ChartComponent = ({ data }: ChartComponentProps) => {
       ],
       grid: {
         borderColor: 'hsl(var(--chart-grid))',
-        strokeDashArray: 4
+        strokeDashArray: 4,
+        padding: {
+          left: 10,
+          right: 10,
+          top: 10,
+          bottom: 10
+        },
+        xaxis: {
+          lines: {
+            show: false
+          }
+        }
       },
       tooltip: {
         shared: true,
@@ -133,18 +158,35 @@ export const ChartComponent = ({ data }: ChartComponentProps) => {
         }
       },
       legend: {
+        position: 'top',
+        horizontalAlign: 'left',
+        offsetY: -10,
         labels: {
           colors: 'hsl(var(--foreground))'
         }
       },
       theme: {
         mode: 'dark'
-      }
+      },
+      responsive: [
+        {
+          breakpoint: 768,
+          options: {
+            chart: {
+              height: 300
+            },
+            legend: {
+              position: 'bottom',
+              offsetY: 0
+            }
+          }
+        }
+      ]
     }
   };
 
   return (
-    <div className="h-64 w-full">
+    <div className="h-[350px] w-full">
       {typeof window !== 'undefined' && (
         <Suspense fallback={<div className="h-full w-full flex items-center justify-center">Loading chart...</div>}>
           <ApexChart 
@@ -152,6 +194,7 @@ export const ChartComponent = ({ data }: ChartComponentProps) => {
             series={chartData.series}
             type="line"
             height="100%"
+            width="100%"
           />
         </Suspense>
       )}
