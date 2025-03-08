@@ -19,26 +19,6 @@ interface ChartComponentProps {
 }
 
 export const ChartComponent = ({ data }: ChartComponentProps) => {
-  // Find the minimum and maximum values for each axis
-  const minProfit = Math.min(...data.map(d => d.profit));
-  const maxProfit = Math.max(...data.map(d => d.profit));
-  const maxAccumulated = Math.max(...data.map(d => d.accumulatedProfit));
-  
-  // Calculate the left axis domain to ensure it's symmetrical around zero
-  // This ensures the zero point is centered when there are both positive and negative values
-  const leftDomainMax = Math.max(Math.abs(minProfit), Math.abs(maxProfit));
-  const leftDomain = [-leftDomainMax, leftDomainMax];
-  
-  // Calculate right axis domain that will align its zero with the left axis zero
-  // We need to determine what percentage of the left axis range is negative
-  const leftRangeSize = leftDomainMax * 2; // Total size of left domain range
-  const leftNegativeProportion = leftDomainMax / leftRangeSize; // Proportion of left domain that's negative
-  
-  // The right domain should have its zero at the same position as the left domain's zero
-  // Calculate the maximum value for right domain to ensure proper alignment
-  const rightDomainMax = maxAccumulated / (1 - leftNegativeProportion);
-  const rightDomain = [0, rightDomainMax];
-
   return (
     <div className="h-64 w-full">
       <ResponsiveContainer width="100%" height="100%">
@@ -59,7 +39,7 @@ export const ChartComponent = ({ data }: ChartComponentProps) => {
             tickLine={false}
             stroke="hsl(var(--chart-grid))"
             tickFormatter={(value) => `${value}`}
-            domain={leftDomain}
+            domain={['auto', 'auto']}
             label={{ 
               value: 'Daily P/L', 
               angle: -90, 
@@ -79,7 +59,7 @@ export const ChartComponent = ({ data }: ChartComponentProps) => {
             tickLine={false}
             stroke="#0EA5E9"
             tickFormatter={(value) => `${value}`}
-            domain={rightDomain}
+            domain={[0, 'auto']}
             label={{ 
               value: 'Accumulated', 
               angle: 90, 
