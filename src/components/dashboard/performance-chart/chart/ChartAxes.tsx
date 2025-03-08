@@ -8,10 +8,9 @@ export interface AxesProps {
   yAccumulated: d3.ScaleLinear<number, number>;
   width: number;
   height: number;
-  zeroY?: number;
 }
 
-export const drawAxes = ({ svg, x, yDaily, yAccumulated, width, height, zeroY }: AxesProps) => {
+export const drawAxes = ({ svg, x, yDaily, yAccumulated, width, height }: AxesProps) => {
   // Add X axis
   svg.append("g")
     .attr("transform", `translate(0,${height})`)
@@ -66,7 +65,7 @@ export const drawAxes = ({ svg, x, yDaily, yAccumulated, width, height, zeroY }:
     .text("Accumulated");
 };
 
-export const drawGridLines = ({ svg, yDaily, yAccumulated, width, height, zeroY }: AxesProps) => {
+export const drawGridLines = ({ svg, yDaily, yAccumulated, width, height }: AxesProps) => {
   // Add a horizontal line at y=0 for daily P/L
   svg.append("line")
     .attr("x1", 0)
@@ -77,13 +76,16 @@ export const drawGridLines = ({ svg, yDaily, yAccumulated, width, height, zeroY 
     .attr("stroke-width", 1)
     .attr("stroke-dasharray", "4");
 
-  // Add a horizontal line at y=0 for accumulated P/L - aligned with daily P/L zero
-  if (zeroY !== undefined) {
+  // Add a horizontal line at y=0 for accumulated P/L if it's within the visible range
+  const accMin = yAccumulated.domain()[0];
+  const accMax = yAccumulated.domain()[1];
+  
+  if (accMin <= 0 && accMax >= 0) {
     svg.append("line")
       .attr("x1", 0)
       .attr("x2", width)
-      .attr("y1", zeroY)
-      .attr("y2", zeroY)
+      .attr("y1", yAccumulated(0))
+      .attr("y2", yAccumulated(0))
       .attr("stroke", "#0EA5E9")
       .attr("stroke-width", 1)
       .attr("stroke-dasharray", "4");
