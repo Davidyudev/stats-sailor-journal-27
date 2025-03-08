@@ -1,4 +1,3 @@
-
 import { cn } from '@/lib/utils';
 import { Trade } from '@/lib/types';
 import { Badge } from "@/components/ui/badge";
@@ -30,7 +29,6 @@ export const TradeDetails = ({
 
   const handleEdit = () => {
     onEditTrade(trade);
-    toast.info("Edit trade functionality will be implemented soon");
   };
 
   const handleDelete = () => {
