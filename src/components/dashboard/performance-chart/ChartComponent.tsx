@@ -1,118 +1,155 @@
 
-import { ReactNode } from 'react';
+import { ReactNode, useRef, useEffect } from 'react';
 import {
-  ComposedChart,
-  Bar,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  ReferenceLine,
-  Legend
-} from 'recharts';
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  Title,
+  Tooltip as ChartTooltip,
+  Legend,
+} from 'chart.js';
+import { Chart } from 'react-chartjs-2';
 import { CustomTooltip } from './CustomTooltip';
+
+// Register ChartJS components
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  Title,
+  ChartTooltip,
+  Legend
+);
 
 interface ChartComponentProps {
   data: any[];
 }
 
 export const ChartComponent = ({ data }: ChartComponentProps) => {
-  // Find the maximum accumulated profit for proper right axis scaling
+  // Find maximum values for scaling
   const maxAccumulated = Math.max(...data.map(item => item.accumulatedProfit || 0));
-  const minAccumulated = Math.min(...data.map(item => item.accumulatedProfit || 0));
-  
-  // Find the minimum and maximum daily P/L for left axis scaling
   const dailyValues = data.map(item => item.profit || 0);
   const minDailyValue = Math.min(...dailyValues);
   const maxDailyValue = Math.max(...dailyValues);
   
-  // Calculate domain for the left axis to make sure it's centered around zero
+  // Calculate the absolute max for proper scaling
   const absMax = Math.max(Math.abs(minDailyValue), Math.abs(maxDailyValue));
-  const leftDomain = [-absMax, absMax];
+  
+  // Prepare chart data
+  const chartData = {
+    labels: data.map(item => item.date),
+    datasets: [
+      {
+        type: 'bar' as const,
+        label: 'Daily P/L',
+        data: data.map(item => item.profit),
+        backgroundColor: 'hsl(var(--primary))',
+        borderRadius: 4,
+        yAxisID: 'y',
+      },
+      {
+        type: 'line' as const,
+        label: 'Accumulated P/L',
+        data: data.map(item => item.accumulatedProfit),
+        borderColor: '#0EA5E9',
+        borderWidth: 3,
+        pointRadius: 0,
+        pointHoverRadius: 6,
+        yAxisID: 'y1',
+        tension: 0.1,
+      },
+    ],
+  };
 
-  // Calculate right axis domain ensuring it starts at 0 and goes to the max
-  const rightDomain = [0, Math.max(maxAccumulated, 1)]; // Ensure at least 1 to avoid empty charts
+  // Configure chart options
+  const options = {
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: {
+      mode: 'index' as const,
+      intersect: false,
+    },
+    scales: {
+      y: {
+        type: 'linear' as const,
+        display: true,
+        position: 'left' as const,
+        title: {
+          display: true,
+          text: 'Daily P/L',
+          color: 'hsl(var(--foreground))',
+          font: {
+            weight: '500',
+          },
+        },
+        min: -absMax,
+        max: absMax,
+        grid: {
+          color: 'hsl(var(--chart-grid))',
+        },
+        ticks: {
+          color: 'hsl(var(--foreground))',
+        },
+      },
+      y1: {
+        type: 'linear' as const,
+        display: true,
+        position: 'right' as const,
+        title: {
+          display: true,
+          text: 'Accumulated',
+          color: '#0EA5E9',
+          font: {
+            weight: '500',
+          },
+        },
+        min: 0,
+        max: Math.max(maxAccumulated, 1), // Ensure at least 1 to avoid empty charts
+        grid: {
+          drawOnChartArea: false,
+          color: '#0EA5E9',
+          borderDash: [3, 3],
+          borderDashOffset: 0.5,
+        },
+        ticks: {
+          color: '#0EA5E9',
+        },
+      },
+      x: {
+        grid: {
+          color: 'hsl(var(--chart-grid))',
+        },
+        ticks: {
+          color: 'hsl(var(--foreground))',
+        },
+      },
+    },
+    plugins: {
+      legend: {
+        position: 'top' as const,
+        labels: {
+          color: 'hsl(var(--foreground))',
+        },
+      },
+      tooltip: {
+        enabled: false, // Disable default tooltip
+        external: function(context: any) {
+          // This is where we could implement a custom tooltip
+          // However, since Chart.js's tooltip system is quite different from Recharts,
+          // we'll leave this as a placeholder for now
+        },
+      },
+    },
+  };
 
   return (
     <div className="h-64 w-full">
-      <ResponsiveContainer width="100%" height="100%">
-        <ComposedChart
-          data={data}
-          margin={{ top: 20, right: 30, left: 5, bottom: 5 }}
-        >
-          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--chart-grid))" />
-          <XAxis 
-            dataKey="date" 
-            tick={{ fontSize: 12, fill: "hsl(var(--foreground))" }} 
-            tickLine={false}
-            stroke="hsl(var(--chart-grid))"
-          />
-          <YAxis 
-            yAxisId="left"
-            tick={{ fontSize: 12, fill: "hsl(var(--foreground))" }} 
-            tickLine={false}
-            stroke="hsl(var(--chart-grid))"
-            tickFormatter={(value) => `${value}`}
-            domain={leftDomain}
-            label={{ 
-              value: 'Daily P/L', 
-              angle: -90, 
-              position: 'insideLeft', 
-              style: { 
-                textAnchor: 'middle', 
-                fill: 'hsl(var(--foreground))',
-                fontWeight: 500
-              }, 
-              offset: 0 
-            }}
-          />
-          <YAxis 
-            yAxisId="right"
-            orientation="right"
-            tick={{ fontSize: 12, fill: "#0EA5E9" }} 
-            tickLine={false}
-            stroke="#0EA5E9"
-            tickFormatter={(value) => `${value}`}
-            domain={rightDomain}
-            label={{ 
-              value: 'Accumulated', 
-              angle: 90, 
-              position: 'insideRight', 
-              style: { 
-                textAnchor: 'middle', 
-                fill: '#0EA5E9',
-                fontWeight: 500
-              }, 
-              offset: 0 
-            }}
-          />
-          <Tooltip content={<CustomTooltip />} />
-          <Legend />
-          <ReferenceLine y={0} yAxisId="left" stroke="hsl(var(--neutral))" />
-          <ReferenceLine y={0} yAxisId="right" stroke="#0EA5E9" strokeOpacity={0.3} strokeDasharray="3 3" />
-          <Bar 
-            yAxisId="left"
-            dataKey="profit" 
-            fill="hsl(var(--primary))"
-            radius={[4, 4, 0, 0]}
-            name="Daily P/L"
-            isAnimationActive={true}
-            animationDuration={1500}
-          />
-          <Line 
-            yAxisId="right"
-            type="monotone" 
-            dataKey="accumulatedProfit" 
-            stroke="#0EA5E9" 
-            strokeWidth={3}
-            dot={false}
-            activeDot={{ r: 6, strokeWidth: 2 }}
-            name="Accumulated P/L"
-          />
-        </ComposedChart>
-      </ResponsiveContainer>
+      <Chart type="bar" data={chartData} options={options} />
     </div>
   );
 };

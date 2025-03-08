@@ -4,16 +4,25 @@ import { MountTransition } from '@/components/ui/mt4-connector';
 import { cn } from '@/lib/utils';
 import { DailyPerformance } from '@/lib/types';
 import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
   Tooltip,
-  ResponsiveContainer,
   Legend,
-  Cell
-} from 'recharts';
+} from 'chart.js';
+import { Bar } from 'react-chartjs-2';
+
+// Register ChartJS components
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend
+);
 
 interface MonthlyPerformanceChartProps {
   data: DailyPerformance[];
@@ -21,7 +30,7 @@ interface MonthlyPerformanceChartProps {
 }
 
 export const MonthlyPerformanceChart = ({ data, className }: MonthlyPerformanceChartProps) => {
-  const chartData = useMemo(() => {
+  const { chartData, monthData } = useMemo(() => {
     // Group data by month
     const monthlyData: Record<string, { month: string, profit: number, trades: number, winRate: number }> = {};
     
@@ -53,33 +62,68 @@ export const MonthlyPerformanceChart = ({ data, className }: MonthlyPerformanceC
       monthlyData[month].winRate = totalTrades > 0 ? (totalWins / totalTrades) * 100 : 0;
     });
     
-    return Object.values(monthlyData);
+    const monthDataArray = Object.values(monthlyData);
+    
+    return {
+      chartData: {
+        labels: monthDataArray.map(item => item.month),
+        datasets: [
+          {
+            label: 'Monthly P/L',
+            data: monthDataArray.map(item => item.profit),
+            backgroundColor: monthDataArray.map(item => 
+              item.profit >= 0 ? 'hsl(var(--profit))' : 'hsl(var(--loss))'
+            ),
+            borderRadius: 4,
+          }
+        ]
+      },
+      monthData: monthDataArray
+    };
   }, [data]);
   
-  const CustomTooltip = ({ active, payload, label }: any) => {
-    if (!active || !payload || !payload.length) {
-      return null;
+  const options = {
+    responsive: true,
+    maintainAspectRatio: false,
+    scales: {
+      y: {
+        grid: {
+          color: 'hsl(var(--chart-grid))',
+        },
+        ticks: {
+          color: 'hsl(var(--foreground))',
+        }
+      },
+      x: {
+        grid: {
+          color: 'hsl(var(--chart-grid))',
+        },
+        ticks: {
+          color: 'hsl(var(--foreground))',
+        }
+      }
+    },
+    plugins: {
+      legend: {
+        position: 'top' as const,
+        labels: {
+          color: 'hsl(var(--foreground))',
+        },
+      },
+      tooltip: {
+        callbacks: {
+          afterLabel: function(context: any) {
+            const dataIndex = context.dataIndex;
+            const dataItem = monthData[dataIndex];
+            
+            return [
+              `Trades: ${dataItem.trades}`,
+              `Win Rate: ${dataItem.winRate.toFixed(1)}%`
+            ];
+          }
+        }
+      }
     }
-    
-    const data = payload[0].payload;
-    
-    return (
-      <div className="glass-card rounded-md p-3 shadow-sm border border-border/50 text-sm">
-        <p className="font-medium mb-1">{data.month}</p>
-        <p className={cn(
-          "font-mono text-xs",
-          data.profit >= 0 ? "text-profit" : "text-loss"
-        )}>
-          Profit/Loss: {data.profit >= 0 ? "+" : ""}{data.profit.toFixed(2)}
-        </p>
-        <p className="font-mono text-xs text-muted-foreground">
-          Trades: {data.trades}
-        </p>
-        <p className="font-mono text-xs text-muted-foreground">
-          Win Rate: {data.winRate.toFixed(1)}%
-        </p>
-      </div>
-    );
   };
 
   return (
@@ -90,39 +134,7 @@ export const MonthlyPerformanceChart = ({ data, className }: MonthlyPerformanceC
         </div>
         
         <div className="h-64 w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart
-              data={chartData}
-              margin={{ top: 5, right: 20, left: 5, bottom: 5 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--chart-grid))" />
-              <XAxis 
-                dataKey="month" 
-                tick={{ fontSize: 12 }} 
-                tickLine={false}
-                stroke="hsl(var(--chart-grid))"
-              />
-              <YAxis 
-                tick={{ fontSize: 12 }} 
-                tickLine={false}
-                stroke="hsl(var(--chart-grid))"
-              />
-              <Tooltip content={<CustomTooltip />} />
-              <Legend />
-              <Bar 
-                dataKey="profit" 
-                name="Monthly P/L"
-                radius={[4, 4, 0, 0]}
-              >
-                {chartData.map((entry, index) => (
-                  <Cell 
-                    key={`cell-${index}`} 
-                    fill={entry.profit >= 0 ? "hsl(var(--profit))" : "hsl(var(--loss))"}
-                  />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
+          <Bar data={chartData} options={options} />
         </div>
       </div>
     </MountTransition>

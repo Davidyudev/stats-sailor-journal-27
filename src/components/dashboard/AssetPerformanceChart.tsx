@@ -4,16 +4,25 @@ import { MountTransition } from '@/components/ui/mt4-connector';
 import { cn } from '@/lib/utils';
 import { Symbol } from '@/lib/types';
 import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
   Tooltip,
-  ResponsiveContainer,
-  Cell,
+  Legend,
+} from 'chart.js';
+import { Bar } from 'react-chartjs-2';
+
+// Register ChartJS components
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
   Legend
-} from 'recharts';
+);
 
 interface AssetPerformanceChartProps {
   data: Symbol[];
@@ -22,7 +31,7 @@ interface AssetPerformanceChartProps {
 
 export const AssetPerformanceChart = ({ data, className }: AssetPerformanceChartProps) => {
   const chartData = useMemo(() => {
-    return [...data]
+    const sortedData = [...data]
       .sort((a, b) => b.totalPL - a.totalPL)
       .map(item => ({
         name: item.name,
@@ -30,33 +39,75 @@ export const AssetPerformanceChart = ({ data, className }: AssetPerformanceChart
         trades: item.tradesCount,
         winRate: item.winRate
       }));
+
+    return {
+      labels: sortedData.map(item => item.name),
+      datasets: [
+        {
+          label: 'Profit/Loss',
+          data: sortedData.map(item => item.pnl),
+          backgroundColor: sortedData.map(item => 
+            item.pnl >= 0 ? 'hsl(var(--profit))' : 'hsl(var(--loss))'
+          ),
+          borderRadius: 4,
+        }
+      ]
+    };
   }, [data]);
 
-  const CustomTooltip = ({ active, payload, label }: any) => {
-    if (!active || !payload || !payload.length) {
-      return null;
+  const options = {
+    responsive: true,
+    maintainAspectRatio: false,
+    scales: {
+      y: {
+        title: {
+          display: true,
+          text: 'Profit/Loss',
+          color: 'hsl(var(--foreground))',
+          font: {
+            weight: '500',
+          },
+        },
+        grid: {
+          color: 'hsl(var(--chart-grid))',
+        },
+        ticks: {
+          color: 'hsl(var(--foreground))',
+        }
+      },
+      x: {
+        grid: {
+          color: 'hsl(var(--chart-grid))',
+        },
+        ticks: {
+          color: 'hsl(var(--foreground))',
+          maxRotation: 45,
+          minRotation: 45
+        }
+      }
+    },
+    plugins: {
+      legend: {
+        position: 'top' as const,
+        labels: {
+          color: 'hsl(var(--foreground))',
+        },
+      },
+      tooltip: {
+        callbacks: {
+          afterLabel: function(context: any) {
+            const dataIndex = context.dataIndex;
+            const dataItem = [...data]
+              .sort((a, b) => b.totalPL - a.totalPL)[dataIndex];
+            
+            return [
+              `Trades: ${dataItem.tradesCount}`,
+              `Win Rate: ${dataItem.winRate}%`
+            ];
+          }
+        }
+      }
     }
-    
-    const data = payload[0]?.payload;
-    if (!data) return null;
-    
-    return (
-      <div className="glass-card rounded-md p-3 shadow-sm border border-border/50 text-sm">
-        <p className="font-medium mb-1">{data.name}</p>
-        <p className={cn(
-          "font-mono text-xs",
-          data.pnl >= 0 ? "text-profit" : "text-loss"
-        )}>
-          P/L: {data.pnl >= 0 ? "+" : ""}{data.pnl.toFixed(2)}
-        </p>
-        <p className="font-mono text-xs text-muted-foreground">
-          Trades: {data.trades}
-        </p>
-        <p className="font-mono text-xs text-muted-foreground">
-          Win Rate: {data.winRate}%
-        </p>
-      </div>
-    );
   };
 
   return (
@@ -67,54 +118,7 @@ export const AssetPerformanceChart = ({ data, className }: AssetPerformanceChart
         </div>
         
         <div className="h-64 w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart
-              data={chartData}
-              margin={{ top: 5, right: 30, left: 20, bottom: 30 }}
-              layout="horizontal"
-            >
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--chart-grid))" />
-              <XAxis 
-                dataKey="name" 
-                type="category"
-                tick={{ fontSize: 12, fill: "hsl(var(--foreground))" }} 
-                tickLine={false}
-                stroke="hsl(var(--chart-grid))"
-                angle={-45}
-                textAnchor="end"
-                height={60}
-              />
-              <YAxis 
-                tick={{ fontSize: 12, fill: "hsl(var(--foreground))" }} 
-                tickLine={false}
-                stroke="hsl(var(--chart-grid))"
-                label={{ 
-                  value: 'Profit/Loss', 
-                  angle: -90, 
-                  position: 'insideLeft', 
-                  style: { 
-                    textAnchor: 'middle', 
-                    fill: 'hsl(var(--foreground))',
-                    fontWeight: 500
-                  }
-                }}
-              />
-              <Tooltip content={<CustomTooltip />} />
-              <Legend />
-              <Bar 
-                dataKey="pnl" 
-                name="Profit/Loss"
-                radius={[4, 4, 0, 0]}
-              >
-                {chartData.map((entry, index) => (
-                  <Cell 
-                    key={`cell-${index}`} 
-                    fill={entry.pnl >= 0 ? "hsl(var(--profit))" : "hsl(var(--loss))"}
-                  />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
+          <Bar data={chartData} options={options} />
         </div>
       </div>
     </MountTransition>

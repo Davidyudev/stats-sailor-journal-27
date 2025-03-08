@@ -4,17 +4,23 @@ import { MountTransition } from '@/components/ui/mt4-connector';
 import { cn } from '@/lib/utils';
 import { Trade } from '@/lib/types';
 import {
-  ScatterChart,
-  Scatter,
-  XAxis,
-  YAxis,
-  CartesianGrid,
+  Chart as ChartJS,
+  LinearScale,
+  PointElement,
+  Title,
   Tooltip,
-  ResponsiveContainer,
-  ZAxis,
   Legend,
-  ReferenceLine
-} from 'recharts';
+} from 'chart.js';
+import { Scatter } from 'react-chartjs-2';
+
+// Register ChartJS components
+ChartJS.register(
+  LinearScale,
+  PointElement,
+  Title,
+  Tooltip,
+  Legend
+);
 
 interface DurationPerformanceChartProps {
   trades: Trade[];
@@ -22,42 +28,103 @@ interface DurationPerformanceChartProps {
 }
 
 export const DurationPerformanceChart = ({ trades, className }: DurationPerformanceChartProps) => {
-  const chartData = useMemo(() => {
-    return trades.map(trade => {
+  const { chartData, tradeItems } = useMemo(() => {
+    const tradeItems = trades.map(trade => {
       const durationHours = (trade.closeDate.getTime() - trade.openDate.getTime()) / (1000 * 60 * 60);
       return {
-        duration: parseFloat(durationHours.toFixed(2)),
-        pnl: trade.profitLoss,
+        x: parseFloat(durationHours.toFixed(2)),
+        y: trade.profitLoss,
+        r: Math.abs(trade.profitLoss) * 0.3 + 4, // Size based on PL magnitude
         symbol: trade.symbol,
-        size: Math.abs(trade.profitLoss) * 0.5 + 5, // Size based on PL magnitude
+        duration: durationHours
       };
     });
+
+    return {
+      chartData: {
+        datasets: [
+          {
+            label: 'Trades',
+            data: tradeItems,
+            backgroundColor: 'hsl(var(--primary))',
+            borderColor: 'hsl(var(--primary))',
+            borderWidth: 1,
+            hoverBackgroundColor: 'hsl(var(--primary))',
+            hoverBorderColor: 'white',
+            pointRadius: 5,
+            pointHoverRadius: 8,
+          }
+        ]
+      },
+      tradeItems
+    };
   }, [trades]);
   
-  const CustomTooltip = ({ active, payload }: any) => {
-    if (!active || !payload || !payload.length) {
-      return null;
+  const options = {
+    responsive: true,
+    maintainAspectRatio: false,
+    scales: {
+      y: {
+        title: {
+          display: true,
+          text: 'Profit/Loss',
+          color: 'hsl(var(--foreground))',
+          font: {
+            weight: '500',
+          },
+        },
+        grid: {
+          color: 'hsl(var(--chart-grid))',
+        },
+        ticks: {
+          color: 'hsl(var(--foreground))',
+        },
+        beginAtZero: false,
+      },
+      x: {
+        title: {
+          display: true,
+          text: 'Duration (hours)',
+          color: 'hsl(var(--foreground))',
+          font: {
+            weight: '500',
+          },
+        },
+        grid: {
+          color: 'hsl(var(--chart-grid))',
+        },
+        ticks: {
+          color: 'hsl(var(--foreground))',
+        },
+        beginAtZero: true,
+      }
+    },
+    plugins: {
+      legend: {
+        position: 'top' as const,
+        labels: {
+          color: 'hsl(var(--foreground))',
+        },
+      },
+      tooltip: {
+        callbacks: {
+          label: function(context: any) {
+            const dataIndex = context.dataIndex;
+            const dataItem = tradeItems[dataIndex];
+            
+            const durationText = dataItem.duration < 1 
+              ? `${Math.round(dataItem.duration * 60)} minutes` 
+              : `${dataItem.duration.toFixed(1)} hours`;
+            
+            return [
+              `${dataItem.symbol}`,
+              `P/L: ${dataItem.y >= 0 ? "+" : ""}${dataItem.y.toFixed(2)}`,
+              `Duration: ${durationText}`
+            ];
+          }
+        }
+      }
     }
-    
-    const data = payload[0]?.payload;
-    if (!data) return null;
-    
-    return (
-      <div className="glass-card rounded-md p-3 shadow-sm border border-border/50 text-sm">
-        <p className="font-medium mb-1">{data.symbol}</p>
-        <p className={cn(
-          "font-mono text-xs",
-          data.pnl >= 0 ? "text-profit" : "text-loss"
-        )}>
-          P/L: {data.pnl >= 0 ? "+" : ""}{data.pnl.toFixed(2)}
-        </p>
-        <p className="font-mono text-xs">
-          Duration: {data.duration < 1 
-            ? `${Math.round(data.duration * 60)} minutes` 
-            : `${data.duration.toFixed(1)} hours`}
-        </p>
-      </div>
-    );
   };
 
   return (
@@ -67,62 +134,8 @@ export const DurationPerformanceChart = ({ trades, className }: DurationPerforma
           <h3 className="text-lg font-medium">Trade Duration vs P/L</h3>
         </div>
         
-        {/* Increased height from 64 to 72 */}
         <div className="h-72 w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <ScatterChart
-              /* Increased bottom margin to prevent overlap */
-              margin={{ top: 20, right: 30, bottom: 60, left: 30 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--chart-grid))" />
-              <XAxis 
-                type="number" 
-                dataKey="duration" 
-                name="Duration (hours)" 
-                tick={{ fontSize: 12 }}
-                tickLine={false}
-                stroke="hsl(var(--chart-grid))"
-                label={{ 
-                  value: 'Duration (hours)', 
-                  position: 'insideBottom', 
-                  /* Increased offset to prevent overlap */
-                  offset: -35,
-                  style: { textAnchor: 'middle' }
-                }}
-              />
-              <YAxis 
-                type="number" 
-                dataKey="pnl" 
-                name="Profit/Loss" 
-                tick={{ fontSize: 12 }}
-                tickLine={false}
-                stroke="hsl(var(--chart-grid))"
-                label={{ 
-                  value: 'Profit/Loss', 
-                  angle: -90, 
-                  position: 'insideLeft', 
-                  style: { textAnchor: 'middle' },
-                  offset: -5
-                }}
-              />
-              <ZAxis type="number" dataKey="size" range={[5, 25]} />
-              <Tooltip content={<CustomTooltip />} />
-              <Legend 
-                wrapperStyle={{ 
-                  bottom: 0,
-                  left: 25,
-                  paddingTop: 20
-                }}
-              />
-              <ReferenceLine y={0} stroke="hsl(var(--neutral))" />
-              <Scatter 
-                name="Trades" 
-                data={chartData} 
-                fill="hsl(var(--primary))"
-                fillOpacity={0.8}
-              />
-            </ScatterChart>
-          </ResponsiveContainer>
+          <Scatter data={chartData} options={options} />
         </div>
       </div>
     </MountTransition>
