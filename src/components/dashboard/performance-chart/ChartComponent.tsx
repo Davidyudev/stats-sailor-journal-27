@@ -64,6 +64,7 @@ export const ChartComponent = ({ data }: ChartComponentProps) => {
             stroke="hsl(var(--chart-grid))"
             tickFormatter={(value) => Number(value).toFixed(2)}
             domain={[adjustedLeftMin, adjustedLeftMax]}
+            ticks={[adjustedLeftMin, -2, -1, 0, 1, 2, adjustedLeftMax]} // Force including 0 in ticks
             label={{ 
               value: 'Daily P/L', 
               angle: -90, 
@@ -85,6 +86,7 @@ export const ChartComponent = ({ data }: ChartComponentProps) => {
             stroke="#0EA5E9"
             tickFormatter={(value) => Number(value).toFixed(2)}
             domain={[adjustedRightMin, adjustedRightMax]}
+            ticks={[adjustedRightMin, -2, -1, 0, 1, 2, adjustedRightMax]} // Force including 0 in ticks
             label={{ 
               value: 'Accumulated', 
               angle: 90, 
