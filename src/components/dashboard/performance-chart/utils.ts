@@ -32,11 +32,11 @@ export const prepareChartData = (filteredData: DailyPerformance[]) => {
   
   const result = [];
   
-  // Calculate accumulated value starting from zero
-  let accumulated = 0;
+  // Calculate the initial value we need to offset by to start at 0
+  let initialOffset = 0;
   
   if (sortedData.length > 0) {
-    // Start with a zero point that matches the first date (or day before)
+    // Add a zero point at the beginning
     result.push({
       date: sortedData[0].date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
       profit: 0,
@@ -45,6 +45,9 @@ export const prepareChartData = (filteredData: DailyPerformance[]) => {
       winRate: 0
     });
   }
+  
+  // Calculate accumulated value starting from zero
+  let accumulated = 0;
   
   sortedData.forEach(item => {
     accumulated += item.profitLoss;
