@@ -54,9 +54,10 @@ export const prepareChartData = (filteredData: DailyPerformance[]) => {
   // Now create the final chart data with normalized accumulated values
   const result = [];
   
-  // Add a starting point at exactly zero
+  // Add a starting point at exactly zero (at the chart border)
+  // This is a virtual point that will be positioned before the first real data point
   result.push({
-    date: rawChartData[0].date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+    date: "Start", // Special marker for the first point
     profit: 0,
     accumulatedProfit: 0, // Start at exactly 0
     trades: 0,
