@@ -1,5 +1,5 @@
 
-import { ReactNode } from 'react';
+import { useMemo } from 'react';
 import {
   ComposedChart,
   Bar,
@@ -19,6 +19,32 @@ interface ChartComponentProps {
 }
 
 export const ChartComponent = ({ data }: ChartComponentProps) => {
+  // Calculate domains for both axes to align zero
+  const { leftDomain, rightDomain } = useMemo(() => {
+    // Find min and max values for both axes
+    let minProfit = 0;
+    let maxProfit = 0;
+    let maxAccumulated = 0;
+    
+    data.forEach(item => {
+      if (item.profit < minProfit) minProfit = item.profit;
+      if (item.profit > maxProfit) maxProfit = item.profit;
+      if (item.accumulatedProfit > maxAccumulated) maxAccumulated = item.accumulatedProfit;
+    });
+    
+    // Make left domain symmetrical around zero to ensure zero is centered
+    const absMax = Math.max(Math.abs(minProfit), Math.abs(maxProfit));
+    const leftDomain = [-absMax, absMax];
+    
+    // Calculate right domain with the same proportion for zero position
+    // If maxAccumulated is 0, default to [0, 1] to avoid division by zero
+    const rightDomain = maxAccumulated === 0 
+      ? [0, 1]
+      : [0, (maxAccumulated / absMax) * absMax * 2];
+      
+    return { leftDomain, rightDomain };
+  }, [data]);
+
   return (
     <div className="h-64 w-full">
       <ResponsiveContainer width="100%" height="100%">
@@ -39,7 +65,7 @@ export const ChartComponent = ({ data }: ChartComponentProps) => {
             tickLine={false}
             stroke="hsl(var(--chart-grid))"
             tickFormatter={(value) => `${value}`}
-            domain={['auto', 'auto']}
+            domain={leftDomain}
             label={{ 
               value: 'Daily P/L', 
               angle: -90, 
@@ -59,7 +85,7 @@ export const ChartComponent = ({ data }: ChartComponentProps) => {
             tickLine={false}
             stroke="#0EA5E9"
             tickFormatter={(value) => `${value}`}
-            domain={[0, 'auto']}
+            domain={rightDomain}
             label={{ 
               value: 'Accumulated', 
               angle: 90, 
