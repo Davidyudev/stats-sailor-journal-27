@@ -33,10 +33,9 @@ export const ChartComponent = ({ data }: ChartComponentProps) => {
   const leftDomain = [-absMax, absMax];
 
   // Calculate domain for the right axis
-  // We want the 0 point of the right axis to align with the 0 point of the left axis
-  // The scale of the right axis should accommodate all accumulated values
-  const absAccMax = Math.max(Math.abs(minAccumulated), Math.abs(maxAccumulated));
-  const rightDomain = [minAccumulated < 0 ? -absAccMax : 0, maxAccumulated];
+  // We want to make sure the accumulated profit line starts at 0
+  // and the scale properly shows all accumulated values
+  const rightDomain = [0, Math.max(maxAccumulated, absMax * 2)]; // Ensure enough space at the top
 
   return (
     <div className="h-64 w-full">
