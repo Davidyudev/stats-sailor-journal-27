@@ -1,4 +1,3 @@
-
 import { DailyPerformance } from '@/lib/types';
 import { TimePeriod } from '@/hooks/useTimePeriodFilter';
 
@@ -34,7 +33,7 @@ export const prepareChartData = (filteredData: DailyPerformance[]) => {
     return [];
   }
   
-  // First, let's create the chart data without normalization
+  // First, let's create the chart data with proper accumulation
   let accumulated = 0;
   const rawChartData = sortedData.map(item => {
     accumulated += item.profitLoss;
@@ -42,16 +41,13 @@ export const prepareChartData = (filteredData: DailyPerformance[]) => {
       date: item.date,
       rawDate: item.date,
       profit: item.profitLoss,
-      accumulatedProfit: accumulated,
+      accumulatedProfit: accumulated, // This is the running total
       trades: item.trades,
       winRate: item.winRate
     };
   });
   
-  // Find the first accumulated value to use as our offset
-  const firstAccumulatedValue = rawChartData[0].accumulatedProfit;
-  
-  // Now create the final chart data with normalized accumulated values
+  // Create the final chart data
   const result = [];
   
   // Add a starting point at exactly zero (at the chart border)
@@ -64,15 +60,12 @@ export const prepareChartData = (filteredData: DailyPerformance[]) => {
     winRate: 0
   });
   
-  // Add all data points with normalized accumulated profit
-  // First data point should maintain its original profit value, but start at 0 for accumulated
-  rawChartData.forEach((item, index) => {
+  // Add all data points with their correct accumulated profit
+  rawChartData.forEach(item => {
     result.push({
       date: item.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
       profit: item.profit,
-      // For the first real data point, set its accumulated profit to its actual profit
-      // For subsequent points, normalize relative to the first point's accumulated value
-      accumulatedProfit: index === 0 ? item.profit : item.accumulatedProfit - firstAccumulatedValue,
+      accumulatedProfit: item.accumulatedProfit, // Use the accumulated value directly
       trades: item.trades,
       winRate: item.winRate
     });
