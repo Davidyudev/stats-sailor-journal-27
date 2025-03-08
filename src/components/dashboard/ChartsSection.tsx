@@ -1,6 +1,6 @@
 
 import { DailyPerformance, Trade, Symbol } from '@/lib/types';
-import { AssetPerformanceChart } from '@/components/dashboard/AssetPerformanceChart';
+import { AssetPerformanceChart } from '@/components/dashboard/asset-performance-chart/AssetPerformanceChart';
 import { MonthlyPerformanceChart } from '@/components/dashboard/MonthlyPerformanceChart';
 import { DurationPerformanceChart } from '@/components/dashboard/DurationPerformanceChart';
 
