@@ -8,6 +8,7 @@ import { TradesTable } from '@/components/journal/TradesTable';
 import { TradeDetails } from '@/components/journal/TradeDetails';
 import { useTradeFilters } from '@/components/journal/useTradeFilters';
 import { useTradeSorting } from '@/components/journal/useTradeSorting';
+import { toast } from 'sonner';
 
 const Journal = () => {
   const [trades, setTrades] = useState<Trade[]>([]);
@@ -47,6 +48,25 @@ const Journal = () => {
     setSelectedTrade(trade);
   };
 
+  const handleEditTrade = (trade: Trade) => {
+    // This is a placeholder for future edit implementation
+    console.log('Edit trade:', trade);
+    // In a real application, you would navigate to an edit page or open a modal
+  };
+
+  const handleDeleteTrade = (tradeId: string) => {
+    // Remove the trade from the trades array
+    const updatedTrades = trades.filter(trade => trade.id !== tradeId);
+    setTrades(updatedTrades);
+    
+    // If the deleted trade was selected, clear the selection
+    if (selectedTrade && selectedTrade.id === tradeId) {
+      setSelectedTrade(null);
+    }
+    
+    console.log('Delete trade:', tradeId);
+  };
+
   return (
     <div className="space-y-6">
       <JournalHeader 
@@ -80,7 +100,11 @@ const Journal = () => {
           )}
         </MountTransition>
         
-        <TradeDetails trade={selectedTrade} />
+        <TradeDetails 
+          trade={selectedTrade} 
+          onEditTrade={handleEditTrade}
+          onDeleteTrade={handleDeleteTrade}
+        />
       </div>
     </div>
   );

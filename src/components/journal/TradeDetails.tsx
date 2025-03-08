@@ -4,12 +4,20 @@ import { Trade } from '@/lib/types';
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { MountTransition } from '@/components/ui/mt4-connector';
+import { Edit, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface TradeDetailsProps {
   trade: Trade | null;
+  onEditTrade?: (trade: Trade) => void;
+  onDeleteTrade?: (tradeId: string) => void;
 }
 
-export const TradeDetails = ({ trade }: TradeDetailsProps) => {
+export const TradeDetails = ({ 
+  trade, 
+  onEditTrade = () => {}, 
+  onDeleteTrade = () => {} 
+}: TradeDetailsProps) => {
   if (!trade) {
     return (
       <MountTransition className="glass-card rounded-lg w-full lg:w-96 p-4 flex items-center justify-center h-64">
@@ -19,6 +27,16 @@ export const TradeDetails = ({ trade }: TradeDetailsProps) => {
       </MountTransition>
     );
   }
+
+  const handleEdit = () => {
+    onEditTrade(trade);
+    toast.info("Edit trade functionality will be implemented soon");
+  };
+
+  const handleDelete = () => {
+    onDeleteTrade(trade.id);
+    toast.success(`Trade ${trade.symbol} deleted successfully`);
+  };
 
   return (
     <MountTransition 
@@ -123,8 +141,12 @@ export const TradeDetails = ({ trade }: TradeDetailsProps) => {
       )}
       
       <div className="border-t pt-4 flex gap-2">
-        <Button variant="outline" size="sm" className="flex-1">Edit</Button>
-        <Button variant="outline" size="sm" className="flex-1">Delete</Button>
+        <Button variant="outline" size="sm" className="flex-1" onClick={handleEdit}>
+          <Edit className="mr-1" size={14} /> Edit
+        </Button>
+        <Button variant="outline" size="sm" className="flex-1" onClick={handleDelete}>
+          <Trash2 className="mr-1" size={14} /> Delete
+        </Button>
       </div>
     </MountTransition>
   );
