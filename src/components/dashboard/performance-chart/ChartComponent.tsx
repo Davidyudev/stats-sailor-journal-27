@@ -23,36 +23,25 @@ export const ChartComponent = ({ data }: ChartComponentProps) => {
   // Calculate the min and max values for each axis to determine scaling
   const leftMin = Math.min(...data.map(item => item.profit));
   const leftMax = Math.max(...data.map(item => item.profit));
-  const rightMin = 0; // Always start at 0 for accumulated
-  const rightMax = Math.max(...data.map(item => item.accumulatedProfit));
   
   // Add padding to the axis ranges for better visualization
-  const leftPadding = Math.abs(leftMax - leftMin) * 0.2;
-  const rightPadding = rightMax * 0.2;
-  
-  // Calculate a scale factor to align the zero points
-  // We need to determine what percentage of the left axis range is below zero
-  const leftRange = (leftMax + leftPadding) - (leftMin - leftPadding);
-  const leftZeroPosition = leftMin < 0 ? Math.abs(leftMin - leftPadding) / leftRange : 0;
-  
-  // Apply the same zero position to the right axis
-  const rightRange = (rightMax + rightPadding) - rightMin;
-  const rightAxisMin = Math.min(0, rightMin - (leftZeroPosition * rightRange));
+  const leftPadding = Math.abs(leftMax - leftMin) * 0.25; // Increased padding
+  const rightPadding = Math.max(...data.map(item => item.accumulatedProfit)) * 0.25; // Increased padding
   
   // Ensure left axis always includes zero by adjusting domain
-  const adjustedLeftMin = Math.min(0, leftMin - leftPadding);
-  const adjustedLeftMax = Math.max(leftMax + leftPadding, leftPadding); // Ensure positive space if all values are 0
+  const adjustedLeftMin = Math.min(-1, leftMin - leftPadding); // Always show below zero
+  const adjustedLeftMax = Math.max(1, leftMax + leftPadding); // Always show above zero
   
-  // Ensure right axis always includes zero
-  const adjustedRightMin = Math.min(0, rightAxisMin);
-  const adjustedRightMax = rightMax + rightPadding;
+  // Ensure right axis always includes zero and has appropriate padding
+  const adjustedRightMin = Math.min(-1, -rightPadding); // Always show below zero
+  const adjustedRightMax = Math.max(...data.map(item => item.accumulatedProfit)) + rightPadding;
   
   return (
     <div className="h-64 w-full">
       <ResponsiveContainer width="100%" height="100%">
         <ComposedChart
           data={data}
-          margin={{ top: 30, right: 30, left: 5, bottom: 20 }}
+          margin={{ top: 40, right: 40, left: 10, bottom: 30 }} // Increased margins
         >
           <defs>
             <linearGradient id="colorAccumulated" x1="0" y1="0" x2="0" y2="1">
@@ -111,8 +100,34 @@ export const ChartComponent = ({ data }: ChartComponentProps) => {
           />
           <Tooltip content={<CustomTooltip />} />
           <Legend wrapperStyle={{ paddingTop: 10 }} />
-          <ReferenceLine y={0} yAxisId="left" stroke="hsl(var(--neutral))" strokeWidth={2} strokeDasharray="3 3" />
-          <ReferenceLine y={0} yAxisId="right" stroke="#0EA5E9" strokeWidth={1} strokeDasharray="3 3" strokeOpacity={0.5} />
+          
+          {/* More prominent reference lines at zero */}
+          <ReferenceLine 
+            y={0} 
+            yAxisId="left" 
+            stroke="hsl(var(--neutral))" 
+            strokeWidth={2} 
+            label={{
+              value: '0',
+              position: 'insideBottomLeft',
+              fill: 'hsl(var(--foreground))',
+              fontSize: 12
+            }}
+          />
+          
+          <ReferenceLine 
+            y={0} 
+            yAxisId="right" 
+            stroke="#0EA5E9" 
+            strokeWidth={1.5} 
+            strokeDasharray="3 3" 
+            label={{
+              value: '0',
+              position: 'insideBottomRight',
+              fill: '#0EA5E9',
+              fontSize: 12
+            }}
+          />
           
           {/* Add subtle area under the accumulated line */}
           <Area
