@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Trade } from '@/lib/types';
 import { 
@@ -11,6 +12,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 
 interface TradeEditDialogProps {
@@ -52,8 +54,10 @@ export const TradeEditDialog = ({
       .slice(0, 16); // Format: YYYY-MM-DDThh:mm
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value, type } = e.target;
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value, type } = e.target as HTMLInputElement; // Cast to HTMLInputElement to access type
     
     // Handle different input types
     if (type === 'number') {
@@ -310,6 +314,18 @@ export const TradeEditDialog = ({
               name="notes" 
               value={formData.notes || ''} 
               onChange={handleChange}
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="comments">Trade Thoughts/Analysis</Label>
+            <Textarea 
+              id="comments" 
+              name="comments" 
+              placeholder="Enter your thoughts and analysis about this trade..."
+              value={formData.comments || ''} 
+              onChange={handleChange}
+              className="min-h-[120px] resize-y"
             />
           </div>
           

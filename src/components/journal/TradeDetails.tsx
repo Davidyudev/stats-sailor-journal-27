@@ -140,6 +140,15 @@ export const TradeDetails = ({
         </div>
       )}
       
+      {trade.comments && (
+        <div className="border-t pt-4">
+          <span className="text-muted-foreground text-sm">Trade Analysis</span>
+          <div className="mt-2 text-sm bg-muted/50 p-3 rounded-md whitespace-pre-wrap">
+            {trade.comments}
+          </div>
+        </div>
+      )}
+      
       <div className="border-t pt-4 flex gap-2">
         <Button variant="outline" size="sm" className="flex-1" onClick={handleEdit}>
           <Edit className="mr-1" size={14} /> Edit

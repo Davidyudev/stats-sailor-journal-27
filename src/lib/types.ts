@@ -1,4 +1,3 @@
-
 export interface Trade {
   id: string;
   symbol: string;
@@ -17,6 +16,7 @@ export interface Trade {
   swap?: number;
   notes?: string;
   tags?: string[];
+  comments?: string; // Added new field for trade comments/thoughts
 }
 
 export interface DailyPerformance {
