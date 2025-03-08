@@ -27,7 +27,13 @@ export const TradeEditDialog = ({
   trade, 
   onSave 
 }: TradeEditDialogProps) => {
-  const [formData, setFormData] = useState<Partial<Trade>>({});
+  // Use a separate interface for the form data to handle string dates
+  interface FormDataType extends Omit<Partial<Trade>, 'openDate' | 'closeDate'> {
+    openDate?: string;
+    closeDate?: string;
+  }
+
+  const [formData, setFormData] = useState<FormDataType>({});
 
   useEffect(() => {
     if (trade) {
@@ -59,7 +65,7 @@ export const TradeEditDialog = ({
     } else if (name === 'openDate' || name === 'closeDate') {
       setFormData({
         ...formData,
-        [name]: value ? new Date(value) : new Date()
+        [name]: value // Keep as string in the form
       });
     } else if (name === 'tags') {
       setFormData({
@@ -92,9 +98,12 @@ export const TradeEditDialog = ({
       
       profitLoss = pips * (formData.lots || 1) / 10;
       
+      // Convert string dates back to Date objects for the updated trade
       const updatedTrade: Trade = {
         ...trade,
         ...formData,
+        openDate: formData.openDate ? new Date(formData.openDate) : trade.openDate,
+        closeDate: formData.closeDate ? new Date(formData.closeDate) : trade.closeDate,
         pips,
         profitLoss,
       } as Trade;
@@ -149,7 +158,7 @@ export const TradeEditDialog = ({
                 id="openDate" 
                 name="openDate" 
                 type="datetime-local" 
-                value={formData.openDate as string || ''} 
+                value={formData.openDate || ''} 
                 onChange={handleChange}
                 required
               />
@@ -161,7 +170,7 @@ export const TradeEditDialog = ({
                 id="closeDate" 
                 name="closeDate" 
                 type="datetime-local" 
-                value={formData.closeDate as string || ''} 
+                value={formData.closeDate || ''} 
                 onChange={handleChange}
                 required
               />
