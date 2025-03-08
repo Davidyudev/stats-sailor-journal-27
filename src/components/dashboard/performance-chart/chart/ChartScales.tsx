@@ -37,38 +37,32 @@ export const createScales = (
   yMax = Math.max(yMax, 0);
   
   // For accumulated P/L, always ensure 0 is included
-  const accMin = Math.min(minAccumulated * 1.1, 0);
-  const accMax = Math.max(maxAccumulated * 1.1, 0);
+  const accMin = Math.min(minAccumulated - Math.abs(minAccumulated * 0.1), 0);
+  const accMax = Math.max(maxAccumulated + Math.abs(maxAccumulated * 0.1), 0);
   
-  // Y scales - one for daily P/L (left) and one for accumulated P/L (right)
-  // Using the same domain for both scales would make them hard to read
-  // Instead, we'll make sure both scales have 0 at the same position
+  // Create the daily scale first
   const yDaily = d3.scaleLinear()
     .domain([yMin, yMax])
     .range([height, 0]);
   
-  const zeroPosition = yDaily(0); // Get the pixel position for zero in the daily scale
+  // Get the position of zero on the daily scale
+  const zeroPosition = yDaily(0);
   
-  // Create accumulated scale that maps zero to the same pixel position
+  // Calculate the percentage position of zero in the daily scale
+  const zeroPercent = (height - zeroPosition) / height;
+  
+  // Calculate what the range values should be for accumulated scale
+  // to ensure zero is at the same position
+  const accRange = [
+    height, // Bottom position stays the same
+    height - (height * zeroPercent) // Top position adjusted
+  ];
+
+  // Create accumulated scale with aligned zero position
   const yAccumulated = d3.scaleLinear()
     .domain([accMin, accMax])
-    .range([height, 0])
+    .range(accRange)
     .nice();
   
-  // Calculate what range values would put zero at the same position
-  const accZeroPosition = yAccumulated(0);
-  
-  if (accZeroPosition !== zeroPosition && (accMin < 0 && accMax > 0)) {
-    // Adjust the range so zero aligns for both scales
-    const accRange = [
-      height,
-      height - (height * (accMax / (accMax - accMin)))
-    ];
-    
-    if (!isNaN(accRange[0]) && !isNaN(accRange[1])) {
-      yAccumulated.range(accRange);
-    }
-  }
-    
   return { x, yDaily, yAccumulated };
 };
