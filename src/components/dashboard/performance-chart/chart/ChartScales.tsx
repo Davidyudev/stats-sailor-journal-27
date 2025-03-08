@@ -41,13 +41,34 @@ export const createScales = (
   const accMax = Math.max(maxAccumulated * 1.1, 0);
   
   // Y scales - one for daily P/L (left) and one for accumulated P/L (right)
+  // Using the same domain for both scales would make them hard to read
+  // Instead, we'll make sure both scales have 0 at the same position
   const yDaily = d3.scaleLinear()
     .domain([yMin, yMax])
     .range([height, 0]);
   
+  const zeroPosition = yDaily(0); // Get the pixel position for zero in the daily scale
+  
+  // Create accumulated scale that maps zero to the same pixel position
   const yAccumulated = d3.scaleLinear()
     .domain([accMin, accMax])
-    .range([height, 0]);
+    .range([height, 0])
+    .nice();
+  
+  // Calculate what range values would put zero at the same position
+  const accZeroPosition = yAccumulated(0);
+  
+  if (accZeroPosition !== zeroPosition && (accMin < 0 && accMax > 0)) {
+    // Adjust the range so zero aligns for both scales
+    const accRange = [
+      height,
+      height - (height * (accMax / (accMax - accMin)))
+    ];
+    
+    if (!isNaN(accRange[0]) && !isNaN(accRange[1])) {
+      yAccumulated.range(accRange);
+    }
+  }
     
   return { x, yDaily, yAccumulated };
 };
