@@ -106,8 +106,9 @@ export const ChartComponent = ({ data }: ChartComponentProps) => {
               fontWeight: 500
             }
           },
-          min: -Math.max(maxAccumulated, 1),
-          max: Math.max(maxAccumulated, 1),
+          // Use the same scale factor as the daily chart for better comparison
+          min: -absMax * 3, // Use a multiplier to accommodate accumulated values
+          max: absMax * 3,  // while maintaining the same zero position
           labels: {
             style: {
               colors: '#0EA5E9'
