@@ -106,7 +106,7 @@ export const ChartComponent = ({ data }: ChartComponentProps) => {
               fontWeight: 500
             }
           },
-          min: 0,
+          min: -Math.max(maxAccumulated, 1),
           max: Math.max(maxAccumulated, 1),
           labels: {
             style: {
