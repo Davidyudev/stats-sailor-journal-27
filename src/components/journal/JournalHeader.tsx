@@ -1,4 +1,3 @@
-
 import { Search, Filter, Download, Plus, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,7 +19,7 @@ import {
 import { DateRange } from 'react-day-picker';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
 import { TagFilter } from '@/components/ui/tag-filter';
-import { TimePeriod, FilterOptions } from '../types';
+import { TimePeriod, FilterOptions } from './types';
 
 interface JournalHeaderProps {
   searchQuery: string;
