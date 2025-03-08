@@ -65,11 +65,14 @@ export const prepareChartData = (filteredData: DailyPerformance[]) => {
   });
   
   // Add all data points with normalized accumulated profit
-  rawChartData.forEach(item => {
+  // First data point should maintain its original profit value, but start at 0 for accumulated
+  rawChartData.forEach((item, index) => {
     result.push({
       date: item.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
       profit: item.profit,
-      accumulatedProfit: item.accumulatedProfit - firstAccumulatedValue,
+      // For the first real data point, set its accumulated profit to its actual profit
+      // For subsequent points, normalize relative to the first point's accumulated value
+      accumulatedProfit: index === 0 ? item.profit : item.accumulatedProfit - firstAccumulatedValue,
       trades: item.trades,
       winRate: item.winRate
     });
