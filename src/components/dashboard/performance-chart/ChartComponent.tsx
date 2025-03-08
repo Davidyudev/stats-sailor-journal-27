@@ -21,6 +21,8 @@ interface ChartComponentProps {
 export const ChartComponent = ({ data }: ChartComponentProps) => {
   // Find the maximum accumulated profit for proper right axis scaling
   const maxAccumulated = Math.max(...data.map(item => item.accumulatedProfit || 0));
+  const minAccumulated = Math.min(...data.map(item => item.accumulatedProfit || 0));
+  
   // Find the minimum and maximum daily P/L for left axis scaling
   const dailyValues = data.map(item => item.profit || 0);
   const minDailyValue = Math.min(...dailyValues);
@@ -30,8 +32,11 @@ export const ChartComponent = ({ data }: ChartComponentProps) => {
   const absMax = Math.max(Math.abs(minDailyValue), Math.abs(maxDailyValue));
   const leftDomain = [-absMax, absMax];
 
-  // Calculate domain for the right axis to make sure zero aligns with left axis zero
-  const rightDomain = [0, maxAccumulated * 2];
+  // Calculate domain for the right axis
+  // We want the 0 point of the right axis to align with the 0 point of the left axis
+  // The scale of the right axis should accommodate all accumulated values
+  const absAccMax = Math.max(Math.abs(minAccumulated), Math.abs(maxAccumulated));
+  const rightDomain = [minAccumulated < 0 ? -absAccMax : 0, maxAccumulated];
 
   return (
     <div className="h-64 w-full">
