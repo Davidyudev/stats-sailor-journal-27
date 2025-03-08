@@ -1,3 +1,4 @@
+
 import { DailyPerformance } from '@/lib/types';
 import { TimePeriod } from '@/hooks/useTimePeriodFilter';
 
@@ -33,47 +34,45 @@ export const prepareChartData = (filteredData: DailyPerformance[]) => {
     return [];
   }
   
-  // Calculate the accumulated values first to find the initial value
-  let initialValue = 0;
+  // First, let's create the chart data without normalization
   let accumulated = 0;
+  const rawChartData = sortedData.map(item => {
+    accumulated += item.profitLoss;
+    return {
+      date: item.date,
+      rawDate: item.date,
+      profit: item.profitLoss,
+      accumulatedProfit: accumulated,
+      trades: item.trades,
+      winRate: item.winRate
+    };
+  });
   
-  // Find the initial accumulated value after the first data point
-  if (sortedData.length > 0) {
-    accumulated = sortedData[0].profitLoss;
-    initialValue = accumulated; // This is the value we'll subtract from all points
-  }
+  // Find the first accumulated value to use as our offset
+  const firstAccumulatedValue = rawChartData[0].accumulatedProfit;
   
-  // Prepare the chart data with normalized accumulated profit
+  // Now create the final chart data with normalized accumulated values
   const result = [];
   
-  // Add a zero point at the beginning
+  // Add a starting point at exactly zero
   result.push({
-    date: sortedData[0].date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+    date: rawChartData[0].date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
     profit: 0,
     accumulatedProfit: 0, // Start at exactly 0
     trades: 0,
     winRate: 0
   });
   
-  // Reset accumulated to prepare for the real data points
-  accumulated = 0;
-  
-  // Process each data point
-  for (let i = 0; i < sortedData.length; i++) {
-    const item = sortedData[i];
-    accumulated += item.profitLoss;
-    
-    // Normalize the accumulated value by subtracting the initial value
-    const normalizedAccumulated = accumulated - initialValue;
-    
+  // Add all data points with normalized accumulated profit
+  rawChartData.forEach(item => {
     result.push({
       date: item.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      profit: item.profitLoss,
-      accumulatedProfit: normalizedAccumulated,
+      profit: item.profit,
+      accumulatedProfit: item.accumulatedProfit - firstAccumulatedValue,
       trades: item.trades,
       winRate: item.winRate
     });
-  }
+  });
   
   return result;
 };

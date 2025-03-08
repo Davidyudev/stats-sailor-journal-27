@@ -32,10 +32,8 @@ export const ChartComponent = ({ data }: ChartComponentProps) => {
   const absMax = Math.max(Math.abs(minDailyValue), Math.abs(maxDailyValue));
   const leftDomain = [-absMax, absMax];
 
-  // Always ensure the right axis includes 0 and the max/min accumulated values
-  const rightMax = Math.max(maxAccumulated, 0);
-  const rightMin = Math.min(minAccumulated, 0);
-  const rightDomain = [rightMin, rightMax];
+  // Calculate right axis domain ensuring it starts at 0 and goes to the max
+  const rightDomain = [0, Math.max(maxAccumulated, 1)]; // Ensure at least 1 to avoid empty charts
 
   return (
     <div className="h-64 w-full">
