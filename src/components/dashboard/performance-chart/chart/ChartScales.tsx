@@ -5,6 +5,7 @@ export interface ChartScalesResult {
   x: d3.ScaleBand<string>;
   yDaily: d3.ScaleLinear<number, number>;
   yAccumulated: d3.ScaleLinear<number, number>;
+  zeroY: number;
 }
 
 export const createScales = (
@@ -18,36 +19,36 @@ export const createScales = (
     .range([0, width])
     .padding(0.4);
   
-  // Find maximum values for scaling
-  const maxAccumulated = Math.max(...data.map(item => item.accumulatedProfit || 0));
-  const minAccumulated = Math.min(...data.map(item => item.accumulatedProfit || 0));
+  // Extract values
   const dailyValues = data.map(item => item.profit || 0);
+  const accumulatedValues = data.map(item => item.accumulatedProfit || 0);
+  
   const minDailyValue = Math.min(...dailyValues);
   const maxDailyValue = Math.max(...dailyValues);
-  
-  // Calculate the daily range for proper scaling
+  const minAccumulated = Math.min(...accumulatedValues);
+  const maxAccumulated = Math.max(...accumulatedValues);
+
+  // Ensure zero is within the domain and apply padding
   const dailyRange = Math.max(Math.abs(minDailyValue), Math.abs(maxDailyValue));
-  
-  // Calculate dynamic min/max for daily P/L based on data distribution
-  let yMin = minDailyValue - (dailyRange * 0.1); // Add 10% padding
-  let yMax = maxDailyValue + (dailyRange * 0.1); // Add 10% padding
-  
-  // Always ensure 0 is included in the range for daily P/L
-  yMin = Math.min(yMin, 0);
-  yMax = Math.max(yMax, 0);
-  
-  // For accumulated P/L, always ensure 0 is included
-  const accMin = Math.min(minAccumulated * 1.1, 0);
-  const accMax = Math.max(maxAccumulated * 1.1, 0);
-  
-  // Y scales - one for daily P/L (left) and one for accumulated P/L (right)
+  const yMin = Math.min(minDailyValue - dailyRange * 0.1, 0);
+  const yMax = Math.max(maxDailyValue + dailyRange * 0.1, 0);
+
+  // Y scale for daily P/L (left)
   const yDaily = d3.scaleLinear()
     .domain([yMin, yMax])
     .range([height, 0]);
-  
+
+  // Calculate the zero position
+  const zeroY = yDaily(0);
+
+  // Ensure zero is also in the accumulated domain
+  const accMin = Math.min(minAccumulated, 0);
+  const accMax = Math.max(maxAccumulated, 0);
+
+  // Y scale for accumulated P/L (right), ensuring 0 aligns with zeroY
   const yAccumulated = d3.scaleLinear()
     .domain([accMin, accMax])
-    .range([height, 0]);
-    
-  return { x, yDaily, yAccumulated };
+    .range([yDaily(accMin), yDaily(accMax)]);
+
+  return { x, yDaily, yAccumulated, zeroY };
 };
