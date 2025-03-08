@@ -1,4 +1,3 @@
-
 import { DailyPerformance } from '@/lib/types';
 import { TimePeriod } from '@/hooks/useTimePeriodFilter';
 
@@ -32,29 +31,46 @@ export const prepareChartData = (filteredData: DailyPerformance[]) => {
   
   const result = [];
   
-  // Calculate the initial value we need to offset by to start at 0
-  let initialOffset = 0;
-  
-  if (sortedData.length > 0) {
-    // Add a zero point at the beginning
-    result.push({
-      date: sortedData[0].date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      profit: 0,
-      accumulatedProfit: 0,
-      trades: 0,
-      winRate: 0
-    });
+  if (sortedData.length === 0) {
+    return result;
   }
   
-  // Calculate accumulated value starting from zero
-  let accumulated = 0;
+  // Calculate the accumulated without any offset first
+  let tempAccumulated = 0;
+  const tempData = sortedData.map(item => {
+    tempAccumulated += item.profitLoss;
+    return {
+      date: item.date,
+      profit: item.profitLoss,
+      accumulatedProfit: tempAccumulated,
+      trades: item.trades,
+      winRate: item.winRate
+    };
+  });
   
+  // Find the starting accumulated value to use as offset
+  const initialOffset = tempData[0].accumulatedProfit;
+  
+  // Add a zero point at the beginning
+  result.push({
+    date: sortedData[0].date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+    profit: 0,
+    accumulatedProfit: 0,
+    trades: 0,
+    winRate: 0
+  });
+  
+  // Now normalize all values by subtracting the initial offset
+  let accumulated = 0;
   sortedData.forEach(item => {
     accumulated += item.profitLoss;
+    // Normalize the accumulated value by subtracting the initial offset
+    const normalizedAccumulated = accumulated - initialOffset;
+    
     result.push({
       date: item.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
       profit: item.profitLoss,
-      accumulatedProfit: accumulated,
+      accumulatedProfit: normalizedAccumulated,
       trades: item.trades,
       winRate: item.winRate
     });

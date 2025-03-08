@@ -32,9 +32,11 @@ export const ChartComponent = ({ data }: ChartComponentProps) => {
   const absMax = Math.max(Math.abs(minDailyValue), Math.abs(maxDailyValue));
   const leftDomain = [-absMax, absMax];
 
-  // Always start the right axis at 0 and go to maxAccumulated
-  // This ensures the accumulated profit line starts at 0
-  const rightDomain = [0, maxAccumulated];
+  // For the right axis, ensure it starts at the minimum accumulated value
+  // This might be 0 or a negative number
+  const rightMin = Math.min(0, minAccumulated);
+  const rightMax = Math.max(maxAccumulated, 0);
+  const rightDomain = [rightMin, rightMax];
 
   return (
     <div className="h-64 w-full">
