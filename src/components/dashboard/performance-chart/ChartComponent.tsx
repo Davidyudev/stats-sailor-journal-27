@@ -19,6 +19,21 @@ interface ChartComponentProps {
 }
 
 export const ChartComponent = ({ data }: ChartComponentProps) => {
+  // Calculate the min and max values for each axis to determine scaling
+  const leftMin = Math.min(...data.map(item => item.profit));
+  const leftMax = Math.max(...data.map(item => item.profit));
+  const rightMin = 0; // Always start at 0 for accumulated
+  const rightMax = Math.max(...data.map(item => item.accumulatedProfit));
+  
+  // Calculate a scale factor to align the zero points
+  // We need to determine what percentage of the left axis range is below zero
+  const leftRange = leftMax - leftMin;
+  const leftZeroPosition = leftMin < 0 ? Math.abs(leftMin) / leftRange : 0;
+  
+  // Apply the same zero position to the right axis
+  const rightRange = rightMax - rightMin;
+  const rightAxisMin = rightMin - (leftZeroPosition * rightRange);
+  
   return (
     <div className="h-64 w-full">
       <ResponsiveContainer width="100%" height="100%">
@@ -39,7 +54,7 @@ export const ChartComponent = ({ data }: ChartComponentProps) => {
             tickLine={false}
             stroke="hsl(var(--chart-grid))"
             tickFormatter={(value) => `${value}`}
-            domain={['auto', 'auto']}
+            domain={[leftMin, leftMax]}
             label={{ 
               value: 'Daily P/L', 
               angle: -90, 
@@ -59,7 +74,7 @@ export const ChartComponent = ({ data }: ChartComponentProps) => {
             tickLine={false}
             stroke="#0EA5E9"
             tickFormatter={(value) => `${value}`}
-            domain={[0, 'auto']}
+            domain={[rightAxisMin, rightMax]}
             label={{ 
               value: 'Accumulated', 
               angle: 90, 
