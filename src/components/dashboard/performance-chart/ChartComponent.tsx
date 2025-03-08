@@ -1,10 +1,9 @@
 
-import { ReactNode, useRef, useEffect } from 'react';
-import dynamic from 'next/dynamic';
+import { ReactNode, useRef, useEffect, lazy, Suspense } from 'react';
 import ReactApexChart from 'react-apexcharts';
 
-// Use dynamic import with SSR disabled as ApexCharts requires window
-const Chart = dynamic(() => import('react-apexcharts'), { ssr: false });
+// Use React's lazy loading instead of Next.js dynamic imports
+const ApexChart = lazy(() => import('react-apexcharts'));
 
 interface ChartComponentProps {
   data: any[];
@@ -147,12 +146,14 @@ export const ChartComponent = ({ data }: ChartComponentProps) => {
   return (
     <div className="h-64 w-full">
       {typeof window !== 'undefined' && (
-        <Chart 
-          options={chartData.chartOptions as ApexCharts.ApexOptions}
-          series={chartData.series}
-          type="line"
-          height="100%"
-        />
+        <Suspense fallback={<div className="h-full w-full flex items-center justify-center">Loading chart...</div>}>
+          <ApexChart 
+            options={chartData.chartOptions as ApexCharts.ApexOptions}
+            series={chartData.series}
+            type="line"
+            height="100%"
+          />
+        </Suspense>
       )}
     </div>
   );

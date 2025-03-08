@@ -1,13 +1,11 @@
 
-import { useMemo } from 'react';
+import { useMemo, lazy, Suspense } from 'react';
 import { MountTransition } from '@/components/ui/mt4-connector';
 import { cn } from '@/lib/utils';
 import { Trade } from '@/lib/types';
-import dynamic from 'next/dynamic';
-import ReactApexChart from 'react-apexcharts';
 
-// Use dynamic import with SSR disabled as ApexCharts requires window
-const Chart = dynamic(() => import('react-apexcharts'), { ssr: false });
+// Use React's lazy loading instead of Next.js dynamic imports
+const ApexChart = lazy(() => import('react-apexcharts'));
 
 interface DurationPerformanceChartProps {
   trades: Trade[];
@@ -125,12 +123,14 @@ export const DurationPerformanceChart = ({ trades, className }: DurationPerforma
         
         <div className="h-72 w-full">
           {typeof window !== 'undefined' && (
-            <Chart 
-              options={chartData.chartOptions as ApexCharts.ApexOptions}
-              series={chartData.series}
-              type="scatter"
-              height="100%"
-            />
+            <Suspense fallback={<div className="h-full w-full flex items-center justify-center">Loading chart...</div>}>
+              <ApexChart 
+                options={chartData.chartOptions as ApexCharts.ApexOptions}
+                series={chartData.series}
+                type="scatter"
+                height="100%"
+              />
+            </Suspense>
           )}
         </div>
       </div>
