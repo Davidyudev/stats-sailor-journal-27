@@ -7,6 +7,7 @@ export interface ChartElementsProps {
   x: d3.ScaleBand<string>;
   yDaily: d3.ScaleLinear<number, number>;
   yAccumulated: d3.ScaleLinear<number, number>;
+  zeroY: number;
 }
 
 export const drawBars = ({ svg, data, x, yDaily }: ChartElementsProps) => {
@@ -26,7 +27,7 @@ export const drawBars = ({ svg, data, x, yDaily }: ChartElementsProps) => {
     .attr("rx", 4); // Rounded corners
 };
 
-export const drawLine = ({ svg, data, x, yAccumulated }: ChartElementsProps) => {
+export const drawLine = ({ svg, data, x, yAccumulated, zeroY }: ChartElementsProps) => {
   // Add accumulated P/L line
   const line = d3.line<any>()
     .x(d => {
@@ -38,6 +39,24 @@ export const drawLine = ({ svg, data, x, yAccumulated }: ChartElementsProps) => 
     .y(d => yAccumulated(d.accumulatedProfit))
     .curve(d3.curveMonotoneX);
 
+  // Add area chart for accumulated P/L
+  const area = d3.area<any>()
+    .x(d => {
+      if (d.date === "Start") return 0;
+      return (x(d.date) || 0) + x.bandwidth() / 2;
+    })
+    .y0(zeroY) // Use the zeroY as the baseline
+    .y1(d => yAccumulated(d.accumulatedProfit))
+    .curve(d3.curveMonotoneX);
+
+  // Add the area
+  svg.append("path")
+    .datum(data)
+    .attr("fill", "#0EA5E9")
+    .attr("fill-opacity", 0.15)
+    .attr("d", area);
+
+  // Add the line on top of the area
   svg.append("path")
     .datum(data)
     .attr("fill", "none")

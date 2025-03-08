@@ -11,7 +11,7 @@ export interface AxesProps {
 }
 
 export const drawAxes = ({ svg, x, yDaily, yAccumulated, width, height }: AxesProps) => {
-  // Add X axis
+  // Add X axis with improved styling
   svg.append("g")
     .attr("transform", `translate(0,${height})`)
     .call(d3.axisBottom(x)
@@ -20,7 +20,17 @@ export const drawAxes = ({ svg, x, yDaily, yAccumulated, width, height }: AxesPr
     .selectAll("text")
     .style("text-anchor", "middle")
     .style("fill", "hsl(var(--foreground))")
-    .style("font-size", "10px");
+    .style("font-size", "10px")
+    .style("font-weight", "500")
+    // Limit the number of x-axis labels for better visual appeal
+    .each(function(_, i, nodes) {
+      // Only show every nth label depending on data size
+      const totalLabels = nodes.length;
+      const skipFactor = totalLabels > 30 ? 5 : totalLabels > 15 ? 3 : totalLabels > 7 ? 2 : 1;
+      if (i % skipFactor !== 0 && i !== nodes.length - 1) { 
+        d3.select(this).remove();
+      }
+    });
 
   // Add Y axis for daily P/L
   const yDailyAxis = svg.append("g")
@@ -78,7 +88,7 @@ export const drawGridLines = ({ svg, yDaily, yAccumulated, width, height }: Axes
 
   // Add a horizontal line at y=0 for accumulated P/L if it's within the visible range
   const accMin = yAccumulated.domain()[0];
-  const accMax = yAccumulated.domain()[1];
+  const accMax = yAccumulated.domain()[2];
   
   if (accMin <= 0 && accMax >= 0) {
     svg.append("line")

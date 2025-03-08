@@ -32,16 +32,16 @@ export const ChartRenderer = ({ svgRef, data }: ChartRendererProps) => {
       .attr("transform", `translate(${margin.left},${margin.top})`);
     
     // Create scales
-    const { x, yDaily, yAccumulated } = createScales(data, width, height);
+    const { x, yDaily, yAccumulated, zeroY } = createScales(data, width, height);
     
     // Draw axes and grid lines
     drawAxes({ svg, x, yDaily, yAccumulated, width, height });
     drawGridLines({ svg, x, yDaily, yAccumulated, width, height });
     
-    // Draw chart elements
-    drawBars({ svg, data, x, yDaily, yAccumulated });
-    drawLine({ svg, data, x, yDaily, yAccumulated });
-    drawDots({ svg, data, x, yDaily, yAccumulated });
+    // Draw chart elements - pass zeroY to drawLine for the area chart
+    drawBars({ svg, data, x, yDaily, yAccumulated, zeroY });
+    drawLine({ svg, data, x, yDaily, yAccumulated, zeroY });
+    drawDots({ svg, data, x, yDaily, yAccumulated, zeroY });
     
     // Add tooltip and interactions
     const tooltip = createTooltip();
