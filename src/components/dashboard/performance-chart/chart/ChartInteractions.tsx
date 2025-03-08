@@ -20,43 +20,46 @@ export const setupInteractions = ({ svg, data, x, width, height, tooltip }: Char
     .style("opacity", 0)
     .on("mousemove", function(event) {
       const [xPos] = d3.pointer(event);
-      const xValue = xPos;
       
       // Filter out the "Start" point for interaction purposes
       const interactiveData = data.filter(d => d.date !== "Start");
       
-      const xPositions = interactiveData.map((d) => (x(d.date) || 0) + x.bandwidth() / 2);
-      const closest = xPositions.reduce((a, b) => {
-        return Math.abs(b - xValue) < Math.abs(a - xValue) ? b : a;
-      });
-      const index = xPositions.indexOf(closest);
+      // Find which bar the mouse is over directly by comparing x position with each bar
+      let closestPoint = null;
+      let minDistance = Infinity;
       
-      if (index >= 0 && index < interactiveData.length) {
-        const d = interactiveData[index];
+      for (const d of interactiveData) {
+        const barX = x(d.date) || 0;
+        const barWidth = x.bandwidth();
+        const barCenter = barX + barWidth/2;
+        const distance = Math.abs(barCenter - xPos);
         
+        if (distance < minDistance) {
+          minDistance = distance;
+          closestPoint = d;
+        }
+      }
+      
+      if (closestPoint) {
         const tooltipData: TooltipData = {
-          date: d.date,
-          profit: d.profit,
-          accumulatedProfit: d.accumulatedProfit,
-          trades: d.trades,
-          winRate: d.winRate
+          date: closestPoint.date,
+          profit: closestPoint.profit,
+          accumulatedProfit: closestPoint.accumulatedProfit,
+          trades: closestPoint.trades,
+          winRate: closestPoint.winRate
         };
         
         showTooltip(tooltip, event as unknown as MouseEvent, tooltipData);
         
         // Highlight current data point
         svg.selectAll(".dot")
-          .attr("r", (_, i) => {
-            // Skip the Start point when matching indices
-            const actualDotIndex = data.findIndex(item => item.date === d.date);
-            return actualDotIndex === i ? 6 : 3;
+          .attr("r", (d) => {
+            return d.date === closestPoint.date ? 6 : 3;
           });
         
         svg.selectAll(".bar")
-          .attr("opacity", (_, i) => {
-            // Skip the Start point when matching indices
-            const actualBarIndex = data.findIndex(item => item.date === d.date);
-            return actualBarIndex === i ? 1 : 0.7;
+          .attr("opacity", (d) => {
+            return d.date === closestPoint.date ? 1 : 0.7;
           });
       }
     })
