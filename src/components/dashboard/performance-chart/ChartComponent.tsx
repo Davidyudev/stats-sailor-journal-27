@@ -103,30 +103,17 @@ export const ChartComponent = ({ data }: ChartComponentProps) => {
           <Tooltip content={<CustomTooltip />} />
           <Legend wrapperStyle={{ paddingTop: 10 }} />
           
-          {/* More prominent reference lines at zero */}
+          {/* Single reference line at zero for both axes */}
           <ReferenceLine 
             y={0} 
             yAxisId="left" 
-            stroke="hsl(var(--neutral))" 
-            strokeWidth={2} 
-            label={{
-              value: '0',
-              position: 'insideBottomLeft',
-              fill: 'hsl(var(--foreground))',
-              fontSize: 12
-            }}
-          />
-          
-          <ReferenceLine 
-            y={0} 
-            yAxisId="right" 
             stroke="#0EA5E9" 
             strokeWidth={1.5} 
             strokeDasharray="3 3" 
             label={{
               value: '0',
-              position: 'insideBottomRight',
-              fill: '#0EA5E9',
+              position: 'insideBottomLeft',
+              fill: 'hsl(var(--foreground))',
               fontSize: 12
             }}
           />
