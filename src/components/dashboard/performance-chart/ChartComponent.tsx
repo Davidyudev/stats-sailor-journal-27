@@ -1,5 +1,5 @@
 
-import { useMemo } from 'react';
+import { ReactNode } from 'react';
 import {
   ComposedChart,
   Bar,
@@ -19,57 +19,12 @@ interface ChartComponentProps {
 }
 
 export const ChartComponent = ({ data }: ChartComponentProps) => {
-  // Calculate the min and max values for both axes to determine their scales
-  const { minProfit, maxProfit, maxAccumulated } = useMemo(() => {
-    let minP = 0;
-    let maxP = 0;
-    let maxA = 0;
-
-    data.forEach(item => {
-      minP = Math.min(minP, item.profit);
-      maxP = Math.max(maxP, item.profit);
-      maxA = Math.max(maxA, item.accumulatedProfit);
-    });
-
-    return {
-      minProfit: minP,
-      maxProfit: maxP,
-      maxAccumulated: maxA
-    };
-  }, [data]);
-
-  // Calculate proper domains to align the zero points
-  const { leftDomain, rightDomain } = useMemo(() => {
-    // Determine the range needed for the left axis (daily P/L)
-    const maxAbsProfit = Math.max(Math.abs(minProfit), Math.abs(maxProfit));
-    
-    // Use symmetrical padding for better visual appearance
-    const leftPadding = maxAbsProfit * 0.1;
-    
-    // Calculate domains with proper padding
-    return {
-      leftDomain: [
-        minProfit < 0 ? -maxAbsProfit - leftPadding : 0, 
-        maxAbsProfit + leftPadding
-      ],
-      rightDomain: [0, maxAccumulated * 1.1]
-    };
-  }, [minProfit, maxProfit, maxAccumulated]);
-
-  // Format number to be more readable
-  const formatYAxisTick = (value: number) => {
-    if (Math.abs(value) >= 1000) {
-      return `${(value / 1000).toFixed(1)}K`;
-    }
-    return value.toFixed(0);
-  };
-
   return (
     <div className="h-64 w-full">
       <ResponsiveContainer width="100%" height="100%">
         <ComposedChart
           data={data}
-          margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+          margin={{ top: 20, right: 30, left: 5, bottom: 5 }}
         >
           <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--chart-grid))" />
           <XAxis 
@@ -83,8 +38,8 @@ export const ChartComponent = ({ data }: ChartComponentProps) => {
             tick={{ fontSize: 12, fill: "hsl(var(--foreground))" }} 
             tickLine={false}
             stroke="hsl(var(--chart-grid))"
-            tickFormatter={formatYAxisTick}
-            domain={leftDomain}
+            tickFormatter={(value) => `${value}`}
+            domain={['auto', 'auto']}
             label={{ 
               value: 'Daily P/L', 
               angle: -90, 
@@ -92,8 +47,7 @@ export const ChartComponent = ({ data }: ChartComponentProps) => {
               style: { 
                 textAnchor: 'middle', 
                 fill: 'hsl(var(--foreground))',
-                fontWeight: 500,
-                fontSize: 12
+                fontWeight: 500
               }, 
               offset: 0 
             }}
@@ -104,8 +58,8 @@ export const ChartComponent = ({ data }: ChartComponentProps) => {
             tick={{ fontSize: 12, fill: "#0EA5E9" }} 
             tickLine={false}
             stroke="#0EA5E9"
-            tickFormatter={formatYAxisTick}
-            domain={rightDomain}
+            tickFormatter={(value) => `${value}`}
+            domain={[0, 'auto']}
             label={{ 
               value: 'Accumulated', 
               angle: 90, 
@@ -113,8 +67,7 @@ export const ChartComponent = ({ data }: ChartComponentProps) => {
               style: { 
                 textAnchor: 'middle', 
                 fill: '#0EA5E9',
-                fontWeight: 500,
-                fontSize: 12
+                fontWeight: 500
               }, 
               offset: 0 
             }}
@@ -130,7 +83,6 @@ export const ChartComponent = ({ data }: ChartComponentProps) => {
             name="Daily P/L"
             isAnimationActive={true}
             animationDuration={1500}
-            minPointSize={3}
           />
           <Line 
             yAxisId="right"
