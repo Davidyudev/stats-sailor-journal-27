@@ -10,7 +10,8 @@ import {
   Tooltip,
   ResponsiveContainer,
   ReferenceLine,
-  Legend
+  Legend,
+  Area
 } from 'recharts';
 import { CustomTooltip } from './CustomTooltip';
 
@@ -38,6 +39,11 @@ export const ChartComponent = ({ data }: ChartComponentProps) => {
   const adjustedLeftMin = Math.min(0, leftMin);
   const adjustedLeftMax = Math.max(0, leftMax);
   
+  // Custom bar colors based on profit value
+  const getBarColor = (entry: any) => {
+    return entry.profit >= 0 ? 'hsl(var(--profit))' : 'hsl(var(--loss))';
+  };
+  
   return (
     <div className="h-64 w-full">
       <ResponsiveContainer width="100%" height="100%">
@@ -45,12 +51,19 @@ export const ChartComponent = ({ data }: ChartComponentProps) => {
           data={data}
           margin={{ top: 20, right: 30, left: 5, bottom: 5 }}
         >
-          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--chart-grid))" />
+          <defs>
+            <linearGradient id="colorAccumulated" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="#0EA5E9" stopOpacity={0.7}/>
+              <stop offset="95%" stopColor="#0EA5E9" stopOpacity={0.1}/>
+            </linearGradient>
+          </defs>
+          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--chart-grid))" strokeOpacity={0.8} />
           <XAxis 
             dataKey="date" 
             tick={{ fontSize: 12, fill: "hsl(var(--foreground))" }} 
             tickLine={false}
             stroke="hsl(var(--chart-grid))"
+            tickMargin={10}
           />
           <YAxis 
             yAxisId="left"
@@ -66,7 +79,8 @@ export const ChartComponent = ({ data }: ChartComponentProps) => {
               style: { 
                 textAnchor: 'middle', 
                 fill: 'hsl(var(--foreground))',
-                fontWeight: 500
+                fontWeight: 500,
+                fontSize: 13
               }, 
               offset: 0 
             }}
@@ -86,14 +100,27 @@ export const ChartComponent = ({ data }: ChartComponentProps) => {
               style: { 
                 textAnchor: 'middle', 
                 fill: '#0EA5E9',
-                fontWeight: 500
+                fontWeight: 500,
+                fontSize: 13
               }, 
               offset: 0 
             }}
           />
           <Tooltip content={<CustomTooltip />} />
-          <Legend />
-          <ReferenceLine y={0} yAxisId="left" stroke="hsl(var(--neutral))" strokeWidth={2} />
+          <Legend wrapperStyle={{ paddingTop: 10 }} />
+          <ReferenceLine y={0} yAxisId="left" stroke="hsl(var(--neutral))" strokeWidth={2} strokeDasharray="3 3" />
+          
+          {/* Add subtle area under the accumulated line */}
+          <Area
+            yAxisId="right"
+            type="monotone"
+            dataKey="accumulatedProfit"
+            stroke="none"
+            fill="url(#colorAccumulated)"
+            animationDuration={1500}
+            animationEasing="ease-in-out"
+          />
+          
           <Bar 
             yAxisId="left"
             dataKey="profit" 
@@ -101,8 +128,15 @@ export const ChartComponent = ({ data }: ChartComponentProps) => {
             radius={[4, 4, 0, 0]}
             name="Daily P/L"
             isAnimationActive={true}
-            animationDuration={1500}
+            animationDuration={1200}
+            animationEasing="ease-out"
+            stroke="#00000020"
+            strokeWidth={1}
+            maxBarSize={40}
+            fillOpacity={0.85}
+            fill={(entry) => getBarColor(entry)}
           />
+          
           <Line 
             yAxisId="right"
             type="monotone" 
@@ -110,8 +144,11 @@ export const ChartComponent = ({ data }: ChartComponentProps) => {
             stroke="#0EA5E9" 
             strokeWidth={3}
             dot={false}
-            activeDot={{ r: 6, strokeWidth: 2 }}
+            activeDot={{ r: 6, strokeWidth: 2, stroke: "#FFFFFF" }}
             name="Accumulated P/L"
+            animationDuration={1800}
+            animationEasing="ease-in-out"
+            strokeLinecap="round"
           />
         </ComposedChart>
       </ResponsiveContainer>
