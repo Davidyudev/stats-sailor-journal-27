@@ -38,12 +38,12 @@ export const createScales = (
   const zeroY = yDaily(0);
 
   // Min/max for accumulated P/L
-  const accMin = Math.min(d3.min(accumulatedValues)!, 0);
-  const accMax = Math.max(d3.max(accumulatedValues)!, 0);
+  const minAccValue = Math.min(d3.min(accumulatedValues)!, 0);
+  const maxAccValue = Math.max(d3.max(accumulatedValues)!, 0);
   
   // Calculate the proper ratio for proportional scaling
   // We want to maintain the zero position while ensuring proper proportional scaling
-  const totalAccRange = Math.abs(accMin) + Math.abs(accMax);
+  const totalAccRange = Math.abs(minAccValue) + Math.abs(maxAccValue);
   
   // Ensure we don't divide by zero
   if (totalAccRange === 0) {
@@ -55,8 +55,8 @@ export const createScales = (
   }
   
   // Calculate how much of the total range is negative vs positive
-  const negativeRatio = Math.abs(accMin) / totalAccRange;
-  const positiveRatio = Math.abs(accMax) / totalAccRange;
+  const negativeRatio = Math.abs(minAccValue) / totalAccRange;
+  const positiveRatio = Math.abs(maxAccValue) / totalAccRange;
   
   // Calculate the space available below and above the zero line
   const spaceBelow = height - zeroY;
@@ -66,11 +66,11 @@ export const createScales = (
   let rangeMin, rangeMax;
   
   // If we have both positive and negative values
-  if (accMin < 0 && accMax > 0) {
+  if (minAccValue < 0 && maxAccValue > 0) {
     // Allocate space proportionally while keeping zero at zeroY
     rangeMin = zeroY + (spaceBelow * (negativeRatio / (negativeRatio + positiveRatio)));
     rangeMax = zeroY - (spaceAbove * (positiveRatio / (negativeRatio + positiveRatio)));
-  } else if (accMin >= 0) {
+  } else if (minAccValue >= 0) {
     // Only positive values
     rangeMin = zeroY;
     rangeMax = 0;
@@ -80,12 +80,12 @@ export const createScales = (
     rangeMax = zeroY;
   }
   
-  // Ensure we have some padding 
-  accMin = accMin * 1.1;
-  accMax = accMax * 1.1;
+  // Add padding to the domain values
+  const paddedMinValue = minAccValue * 1.1;
+  const paddedMaxValue = maxAccValue * 1.1;
 
   const yAccumulated = d3.scaleLinear()
-    .domain([accMin, 0, accMax])
+    .domain([paddedMinValue, 0, paddedMaxValue])
     .range([rangeMin, zeroY, rangeMax]);
 
   return { x, yDaily, yAccumulated, zeroY };
