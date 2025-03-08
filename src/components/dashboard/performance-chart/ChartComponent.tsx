@@ -19,41 +19,6 @@ interface ChartComponentProps {
 }
 
 export const ChartComponent = ({ data }: ChartComponentProps) => {
-  // Calculate the domains for both axes to ensure zero alignment
-  const getYDomains = () => {
-    // Find min and max values for left axis (daily profit/loss)
-    const leftValues = data.map(item => item.profit);
-    const leftMin = Math.min(0, ...leftValues);
-    const leftMax = Math.max(0, ...leftValues);
-    
-    // Make the left domain symmetrical if needed to balance the chart
-    const leftAbsMax = Math.max(Math.abs(leftMin), Math.abs(leftMax));
-    const leftDomain = [-leftAbsMax, leftAbsMax];
-    
-    // Find max for right axis (accumulated profit)
-    const rightValues = data.map(item => item.accumulatedProfit);
-    const rightMin = Math.min(0, ...rightValues);
-    const rightMax = Math.max(0, ...rightValues);
-    
-    // Calculate right domain to align with left domain at zero
-    // The key is to maintain the same ratio of data units to pixels on both axes
-    const rightRange = rightMax - rightMin;
-    const leftRange = leftDomain[1] - leftDomain[0];
-    
-    // Calculate the position of zero within the left domain as a ratio
-    const zeroPositionRatio = Math.abs(leftDomain[0]) / leftRange;
-    
-    // Calculate the right domain based on this ratio to align zeros
-    const rightDomain = [
-      -zeroPositionRatio * rightRange,
-      (1 - zeroPositionRatio) * rightRange
-    ];
-    
-    return { leftDomain, rightDomain };
-  };
-  
-  const { leftDomain, rightDomain } = getYDomains();
-
   return (
     <div className="h-64 w-full">
       <ResponsiveContainer width="100%" height="100%">
@@ -74,7 +39,7 @@ export const ChartComponent = ({ data }: ChartComponentProps) => {
             tickLine={false}
             stroke="hsl(var(--chart-grid))"
             tickFormatter={(value) => `${value}`}
-            domain={leftDomain}
+            domain={['auto', 'auto']}
             label={{ 
               value: 'Daily P/L', 
               angle: -90, 
@@ -94,7 +59,7 @@ export const ChartComponent = ({ data }: ChartComponentProps) => {
             tickLine={false}
             stroke="#0EA5E9"
             tickFormatter={(value) => `${value}`}
-            domain={rightDomain}
+            domain={[0, 'auto']}
             label={{ 
               value: 'Accumulated', 
               angle: 90, 
