@@ -1,30 +1,10 @@
 
 import { ReactNode, useRef, useEffect } from 'react';
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  BarElement,
-  Title,
-  Tooltip as ChartTooltip,
-  Legend,
-} from 'chart.js';
-import { Chart } from 'react-chartjs-2';
-import { CustomTooltip } from './CustomTooltip';
+import dynamic from 'next/dynamic';
+import ReactApexChart from 'react-apexcharts';
 
-// Register ChartJS components
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  BarElement,
-  Title,
-  ChartTooltip,
-  Legend
-);
+// Use dynamic import with SSR disabled as ApexCharts requires window
+const Chart = dynamic(() => import('react-apexcharts'), { ssr: false });
 
 interface ChartComponentProps {
   data: any[];
@@ -42,114 +22,138 @@ export const ChartComponent = ({ data }: ChartComponentProps) => {
   
   // Prepare chart data
   const chartData = {
-    labels: data.map(item => item.date),
-    datasets: [
+    series: [
       {
-        type: 'bar' as const,
-        label: 'Daily P/L',
-        data: data.map(item => item.profit),
-        backgroundColor: 'hsl(var(--primary))',
-        borderRadius: 4,
-        yAxisID: 'y',
+        name: 'Daily P/L',
+        type: 'column',
+        data: data.map(item => item.profit)
       },
       {
-        type: 'line' as const,
-        label: 'Accumulated P/L',
-        data: data.map(item => item.accumulatedProfit),
-        borderColor: '#0EA5E9',
-        borderWidth: 3,
-        pointRadius: 0,
-        pointHoverRadius: 6,
-        yAxisID: 'y1',
-        tension: 0.1,
-      },
+        name: 'Accumulated P/L',
+        type: 'line',
+        data: data.map(item => item.accumulatedProfit)
+      }
     ],
-  };
-
-  // Configure chart options
-  const options = {
-    responsive: true,
-    maintainAspectRatio: false,
-    interaction: {
-      mode: 'index' as const,
-      intersect: false,
-    },
-    scales: {
-      y: {
-        type: 'linear' as const,
-        display: true,
-        position: 'left' as const,
-        title: {
-          display: true,
-          text: 'Daily P/L',
-          color: 'hsl(var(--foreground))',
-          font: {
-            weight: '500',
-          },
+    chartOptions: {
+      chart: {
+        type: 'line',
+        stacked: false,
+        height: 350,
+        toolbar: {
+          show: false
         },
-        min: -absMax,
-        max: absMax,
-        grid: {
-          color: 'hsl(var(--chart-grid))',
-        },
-        ticks: {
-          color: 'hsl(var(--foreground))',
-        },
+        background: 'transparent'
       },
-      y1: {
-        type: 'linear' as const,
-        display: true,
-        position: 'right' as const,
-        title: {
-          display: true,
-          text: 'Accumulated',
-          color: '#0EA5E9',
-          font: {
-            weight: '500',
-          },
-        },
-        min: 0,
-        max: Math.max(maxAccumulated, 1), // Ensure at least 1 to avoid empty charts
-        grid: {
-          drawOnChartArea: false,
-          color: '#0EA5E9',
-          borderDash: [3, 3],
-          borderDashOffset: 0.5,
-        },
-        ticks: {
-          color: '#0EA5E9',
-        },
+      stroke: {
+        width: [0, 3],
+        curve: 'smooth'
       },
-      x: {
-        grid: {
-          color: 'hsl(var(--chart-grid))',
-        },
-        ticks: {
-          color: 'hsl(var(--foreground))',
-        },
+      plotOptions: {
+        bar: {
+          columnWidth: '60%',
+          borderRadius: 4
+        }
       },
-    },
-    plugins: {
-      legend: {
-        position: 'top' as const,
+      colors: ['hsl(var(--primary))', '#0EA5E9'],
+      fill: {
+        opacity: [1, 1]
+      },
+      markers: {
+        size: [0, 0],
+        hover: {
+          size: 6
+        }
+      },
+      xaxis: {
+        categories: data.map(item => item.date),
         labels: {
-          color: 'hsl(var(--foreground))',
+          style: {
+            colors: 'hsl(var(--foreground))'
+          }
         },
+        axisBorder: {
+          show: false
+        },
+        axisTicks: {
+          show: false
+        }
+      },
+      yaxis: [
+        {
+          seriesName: 'Daily P/L',
+          title: {
+            text: 'Daily P/L',
+            style: {
+              color: 'hsl(var(--foreground))',
+              fontWeight: 500
+            }
+          },
+          min: -absMax,
+          max: absMax,
+          labels: {
+            style: {
+              colors: 'hsl(var(--foreground))'
+            },
+            formatter: (val: number) => val.toFixed(0)
+          }
+        },
+        {
+          seriesName: 'Accumulated P/L',
+          opposite: true,
+          title: {
+            text: 'Accumulated',
+            style: {
+              color: '#0EA5E9',
+              fontWeight: 500
+            }
+          },
+          min: 0,
+          max: Math.max(maxAccumulated, 1),
+          labels: {
+            style: {
+              colors: '#0EA5E9'
+            },
+            formatter: (val: number) => val.toFixed(0)
+          }
+        }
+      ],
+      grid: {
+        borderColor: 'hsl(var(--chart-grid))',
+        strokeDashArray: 4
       },
       tooltip: {
-        enabled: false, // Disable default tooltip
-        external: function(context: any) {
-          // This is where we could implement a custom tooltip
-          // However, since Chart.js's tooltip system is quite different from Recharts,
-          // we'll leave this as a placeholder for now
-        },
+        shared: true,
+        intersect: false,
+        y: {
+          formatter: function(y: number, { seriesIndex }: { seriesIndex: number }) {
+            if (typeof y !== 'undefined') {
+              return `${y >= 0 ? "+" : ""}${y.toFixed(2)}`;
+            }
+            return y;
+          }
+        }
       },
-    },
+      legend: {
+        labels: {
+          colors: 'hsl(var(--foreground))'
+        }
+      },
+      theme: {
+        mode: 'dark'
+      }
+    }
   };
 
   return (
     <div className="h-64 w-full">
-      <Chart type="bar" data={chartData} options={options} />
+      {typeof window !== 'undefined' && (
+        <Chart 
+          options={chartData.chartOptions as ApexCharts.ApexOptions}
+          series={chartData.series}
+          type="line"
+          height="100%"
+        />
+      )}
     </div>
   );
 };

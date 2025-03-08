@@ -3,26 +3,11 @@ import { useMemo } from 'react';
 import { MountTransition } from '@/components/ui/mt4-connector';
 import { cn } from '@/lib/utils';
 import { Symbol } from '@/lib/types';
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend,
-} from 'chart.js';
-import { Bar } from 'react-chartjs-2';
+import dynamic from 'next/dynamic';
+import ReactApexChart from 'react-apexcharts';
 
-// Register ChartJS components
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend
-);
+// Use dynamic import with SSR disabled as ApexCharts requires window
+const Chart = dynamic(() => import('react-apexcharts'), { ssr: false });
 
 interface AssetPerformanceChartProps {
   data: Symbol[];
@@ -41,74 +26,91 @@ export const AssetPerformanceChart = ({ data, className }: AssetPerformanceChart
       }));
 
     return {
-      labels: sortedData.map(item => item.name),
-      datasets: [
-        {
-          label: 'Profit/Loss',
-          data: sortedData.map(item => item.pnl),
-          backgroundColor: sortedData.map(item => 
-            item.pnl >= 0 ? 'hsl(var(--profit))' : 'hsl(var(--loss))'
-          ),
-          borderRadius: 4,
+      series: [{
+        name: 'Profit/Loss',
+        data: sortedData.map(item => item.pnl)
+      }],
+      chartOptions: {
+        chart: {
+          type: 'bar',
+          toolbar: {
+            show: false
+          },
+          background: 'transparent',
+        },
+        colors: sortedData.map(item => 
+          item.pnl >= 0 ? 'hsl(var(--profit))' : 'hsl(var(--loss))'
+        ),
+        plotOptions: {
+          bar: {
+            borderRadius: 4,
+            horizontal: false,
+          }
+        },
+        dataLabels: {
+          enabled: false
+        },
+        xaxis: {
+          categories: sortedData.map(item => item.name),
+          labels: {
+            style: {
+              colors: 'hsl(var(--foreground))'
+            },
+            rotate: -45,
+            rotateAlways: true
+          },
+          axisBorder: {
+            show: false
+          },
+          axisTicks: {
+            show: false
+          }
+        },
+        yaxis: {
+          title: {
+            text: 'Profit/Loss',
+            style: {
+              color: 'hsl(var(--foreground))',
+              fontWeight: 500
+            }
+          },
+          labels: {
+            style: {
+              colors: 'hsl(var(--foreground))'
+            }
+          }
+        },
+        grid: {
+          borderColor: 'hsl(var(--chart-grid))',
+          strokeDashArray: 4,
+        },
+        tooltip: {
+          y: {
+            formatter: (val: number) => `${val >= 0 ? "+" : ""}${val.toFixed(2)}`
+          },
+          custom: function({ series, seriesIndex, dataPointIndex }: any) {
+            const dataItem = [...data]
+              .sort((a, b) => b.totalPL - a.totalPL)[dataPointIndex];
+            
+            return `<div class="apexcharts-tooltip-box">
+              <span><strong>${dataItem.name}</strong></span><br/>
+              <span>P/L: ${series[seriesIndex][dataPointIndex] >= 0 ? "+" : ""}${series[seriesIndex][dataPointIndex].toFixed(2)}</span><br/>
+              <span>Trades: ${dataItem.tradesCount}</span><br/>
+              <span>Win Rate: ${dataItem.winRate}%</span>
+            </div>`;
+          }
+        },
+        legend: {
+          labels: {
+            colors: 'hsl(var(--foreground))'
+          }
+        },
+        theme: {
+          mode: 'dark'
         }
-      ]
+      }
     };
   }, [data]);
-
-  const options = {
-    responsive: true,
-    maintainAspectRatio: false,
-    scales: {
-      y: {
-        title: {
-          display: true,
-          text: 'Profit/Loss',
-          color: 'hsl(var(--foreground))',
-          font: {
-            weight: '500',
-          },
-        },
-        grid: {
-          color: 'hsl(var(--chart-grid))',
-        },
-        ticks: {
-          color: 'hsl(var(--foreground))',
-        }
-      },
-      x: {
-        grid: {
-          color: 'hsl(var(--chart-grid))',
-        },
-        ticks: {
-          color: 'hsl(var(--foreground))',
-          maxRotation: 45,
-          minRotation: 45
-        }
-      }
-    },
-    plugins: {
-      legend: {
-        position: 'top' as const,
-        labels: {
-          color: 'hsl(var(--foreground))',
-        },
-      },
-      tooltip: {
-        callbacks: {
-          afterLabel: function(context: any) {
-            const dataIndex = context.dataIndex;
-            const dataItem = [...data]
-              .sort((a, b) => b.totalPL - a.totalPL)[dataIndex];
-            
-            return [
-              `Trades: ${dataItem.tradesCount}`,
-              `Win Rate: ${dataItem.winRate}%`
-            ];
-          }
-        }
-      }
-    }
-  };
 
   return (
     <MountTransition delay={150} className={cn("glass-card rounded-lg", className)}>
@@ -118,7 +120,14 @@ export const AssetPerformanceChart = ({ data, className }: AssetPerformanceChart
         </div>
         
         <div className="h-64 w-full">
-          <Bar data={chartData} options={options} />
+          {typeof window !== 'undefined' && (
+            <Chart 
+              options={chartData.chartOptions as ApexCharts.ApexOptions}
+              series={chartData.series}
+              type="bar"
+              height="100%"
+            />
+          )}
         </div>
       </div>
     </MountTransition>
