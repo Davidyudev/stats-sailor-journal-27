@@ -1,3 +1,4 @@
+
 import { Search, Filter, Download, Plus, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -93,11 +94,13 @@ export const JournalHeader = ({
                   <SelectValue placeholder="Select time period" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Time</SelectItem>
+                  <SelectItem value="this-week">This Week</SelectItem>
+                  <SelectItem value="this-month">This Month</SelectItem>
                   <SelectItem value="1m">Last Month</SelectItem>
                   <SelectItem value="3m">Last 3 Months</SelectItem>
                   <SelectItem value="6m">Last 6 Months</SelectItem>
                   <SelectItem value="1y">Last Year</SelectItem>
+                  <SelectItem value="all">All Time</SelectItem>
                   <SelectItem value="custom">Custom Range</SelectItem>
                 </SelectContent>
               </Select>

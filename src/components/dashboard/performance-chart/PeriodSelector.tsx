@@ -26,11 +26,13 @@ export const PeriodSelector = ({
         <SelectValue placeholder="Time Period" />
       </SelectTrigger>
       <SelectContent>
-        <SelectItem value="all">Overall</SelectItem>
+        <SelectItem value="this-week">This Week</SelectItem>
+        <SelectItem value="this-month">This Month</SelectItem>
         <SelectItem value="1m">1 Month</SelectItem>
         <SelectItem value="3m">3 Months</SelectItem>
         <SelectItem value="6m">6 Months</SelectItem>
         <SelectItem value="1y">1 Year</SelectItem>
+        <SelectItem value="all">Overall</SelectItem>
       </SelectContent>
     </Select>
   );

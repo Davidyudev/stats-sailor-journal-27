@@ -2,14 +2,15 @@
 import { useState, useEffect } from 'react';
 import { Trade, DailyPerformance, Symbol } from '@/lib/types';
 
-export type TimePeriod = 'all' | '1m' | '3m' | '6m' | '1y';
+export type TimePeriod = 'all' | '1m' | '3m' | '6m' | '1y' | 'this-month' | 'this-week';
 
 export const useTimePeriodFilter = (
   trades: Trade[],
   performance: DailyPerformance[],
   symbols: Symbol[]
 ) => {
-  const [selectedTimePeriod, setSelectedTimePeriod] = useState<TimePeriod>('all');
+  // Change default to "this-month" instead of "all"
+  const [selectedTimePeriod, setSelectedTimePeriod] = useState<TimePeriod>('this-month');
 
   // Filter trades based on selected time period
   const filteredTrades = (() => {
@@ -19,17 +20,34 @@ export const useTimePeriodFilter = (
     }
     
     const now = new Date();
-    let monthsToSubtract = 0;
+    let cutoffDate = new Date();
     
     switch(selectedTimePeriod) {
-      case '1m': monthsToSubtract = 1; break;
-      case '3m': monthsToSubtract = 3; break;
-      case '6m': monthsToSubtract = 6; break;
-      case '1y': monthsToSubtract = 12; break;
+      case '1m': 
+        cutoffDate.setMonth(now.getMonth() - 1);
+        break;
+      case '3m': 
+        cutoffDate.setMonth(now.getMonth() - 3);
+        break;
+      case '6m': 
+        cutoffDate.setMonth(now.getMonth() - 6);
+        break;
+      case '1y': 
+        cutoffDate.setFullYear(now.getFullYear() - 1);
+        break;
+      case 'this-month':
+        // Set to first day of current month
+        cutoffDate = new Date(now.getFullYear(), now.getMonth(), 1);
+        break;
+      case 'this-week':
+        // Set to Monday of current week
+        const day = now.getDay(); // 0 is Sunday, 1 is Monday, etc.
+        const diff = day === 0 ? 6 : day - 1; // Adjust to make Monday the first day
+        cutoffDate = new Date(now);
+        cutoffDate.setDate(now.getDate() - diff);
+        cutoffDate.setHours(0, 0, 0, 0);
+        break;
     }
-    
-    const cutoffDate = new Date();
-    cutoffDate.setMonth(now.getMonth() - monthsToSubtract);
     
     return trades
       .filter(trade => trade.closeDate >= cutoffDate)
@@ -85,17 +103,34 @@ export const useTimePeriodFilter = (
     }
     
     const now = new Date();
-    let monthsToSubtract = 0;
+    let cutoffDate = new Date();
     
     switch(selectedTimePeriod) {
-      case '1m': monthsToSubtract = 1; break;
-      case '3m': monthsToSubtract = 3; break;
-      case '6m': monthsToSubtract = 6; break;
-      case '1y': monthsToSubtract = 12; break;
+      case '1m': 
+        cutoffDate.setMonth(now.getMonth() - 1);
+        break;
+      case '3m': 
+        cutoffDate.setMonth(now.getMonth() - 3);
+        break;
+      case '6m': 
+        cutoffDate.setMonth(now.getMonth() - 6);
+        break;
+      case '1y': 
+        cutoffDate.setFullYear(now.getFullYear() - 1);
+        break;
+      case 'this-month':
+        // Set to first day of current month
+        cutoffDate = new Date(now.getFullYear(), now.getMonth(), 1);
+        break;
+      case 'this-week':
+        // Set to Monday of current week
+        const day = now.getDay(); // 0 is Sunday, 1 is Monday, etc.
+        const diff = day === 0 ? 6 : day - 1; // Adjust to make Monday the first day
+        cutoffDate = new Date(now);
+        cutoffDate.setDate(now.getDate() - diff);
+        cutoffDate.setHours(0, 0, 0, 0);
+        break;
     }
-    
-    const cutoffDate = new Date();
-    cutoffDate.setMonth(now.getMonth() - monthsToSubtract);
     
     return performance
       .filter(item => item.date >= cutoffDate)

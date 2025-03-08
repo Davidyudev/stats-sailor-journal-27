@@ -1,3 +1,4 @@
+
 import { DailyPerformance } from '@/lib/types';
 import { TimePeriod } from '@/hooks/useTimePeriodFilter';
 
@@ -8,17 +9,34 @@ export const filterDataByTimePeriod = (data: DailyPerformance[], timePeriod: Tim
   }
   
   const now = new Date();
-  let monthsToSubtract = 0;
+  let cutoffDate = new Date();
   
   switch(timePeriod) {
-    case '1m': monthsToSubtract = 1; break;
-    case '3m': monthsToSubtract = 3; break;
-    case '6m': monthsToSubtract = 6; break;
-    case '1y': monthsToSubtract = 12; break;
+    case '1m': 
+      cutoffDate.setMonth(now.getMonth() - 1);
+      break;
+    case '3m': 
+      cutoffDate.setMonth(now.getMonth() - 3);
+      break;
+    case '6m': 
+      cutoffDate.setMonth(now.getMonth() - 6);
+      break;
+    case '1y': 
+      cutoffDate.setFullYear(now.getFullYear() - 1);
+      break;
+    case 'this-month':
+      // Set to first day of current month
+      cutoffDate = new Date(now.getFullYear(), now.getMonth(), 1);
+      break;
+    case 'this-week':
+      // Set to Monday of current week
+      const day = now.getDay(); // 0 is Sunday, 1 is Monday, etc.
+      const diff = day === 0 ? 6 : day - 1; // Adjust to make Monday the first day
+      cutoffDate = new Date(now);
+      cutoffDate.setDate(now.getDate() - diff);
+      cutoffDate.setHours(0, 0, 0, 0);
+      break;
   }
-  
-  const cutoffDate = new Date();
-  cutoffDate.setMonth(now.getMonth() - monthsToSubtract);
   
   return data
     .filter(item => item.date >= cutoffDate)

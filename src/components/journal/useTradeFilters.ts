@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useMemo } from 'react';
 import { DateRange } from 'react-day-picker';
 import { Trade } from '@/lib/types';
@@ -7,7 +6,7 @@ import { FilterOptions } from './types';
 export const useTradeFilters = (trades: Trade[]) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState<FilterOptions>({
-    timePeriod: 'all',
+    timePeriod: 'this-month',
     symbols: [],
     tradeType: ['buy', 'sell'],
     profitOnly: false,
@@ -19,7 +18,6 @@ export const useTradeFilters = (trades: Trade[]) => {
   const [availableSymbols, setAvailableSymbols] = useState<string[]>([]);
   const [availableTags, setAvailableTags] = useState<string[]>([]);
   
-  // Extract available symbols and tags from trades
   useEffect(() => {
     if (trades.length > 0) {
       const symbols = Array.from(new Set(trades.map(trade => trade.symbol)));
@@ -34,21 +32,17 @@ export const useTradeFilters = (trades: Trade[]) => {
     }
   }, [trades]);
 
-  // Filter trades based on current filters and search query
   const filteredTrades = useMemo(() => {
     let result = [...trades];
 
-    // Apply symbol filter
     if (filters.symbols.length > 0 && filters.symbols.length !== availableSymbols.length) {
       result = result.filter(trade => filters.symbols.includes(trade.symbol));
     }
 
-    // Apply trade type filter
     if (filters.tradeType.length > 0 && !filters.tradeType.includes('all')) {
       result = result.filter(trade => filters.tradeType.includes(trade.type));
     }
 
-    // Apply profit/loss filters
     if (filters.profitOnly) {
       result = result.filter(trade => trade.profitLoss > 0);
     }
@@ -56,19 +50,16 @@ export const useTradeFilters = (trades: Trade[]) => {
       result = result.filter(trade => trade.profitLoss < 0);
     }
 
-    // Apply notes filter
     if (filters.withNotes) {
       result = result.filter(trade => trade.notes && trade.notes.trim() !== '');
     }
 
-    // Apply tag filter
     if (filters.tags.length > 0) {
       result = result.filter(trade => 
         trade.tags && trade.tags.some(tag => filters.tags.includes(tag))
       );
     }
 
-    // Apply date range filter
     if (filters.timePeriod !== 'all') {
       const now = new Date();
       let cutoffDate: Date | undefined;
@@ -82,7 +73,6 @@ export const useTradeFilters = (trades: Trade[]) => {
           );
         });
       } else {
-        // Standard time periods
         switch(filters.timePeriod) {
           case '1m':
             cutoffDate = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
@@ -96,6 +86,16 @@ export const useTradeFilters = (trades: Trade[]) => {
           case '1y':
             cutoffDate = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
             break;
+          case 'this-month':
+            cutoffDate = new Date(now.getFullYear(), now.getMonth(), 1);
+            break;
+          case 'this-week':
+            const day = now.getDay();
+            const diff = day === 0 ? 6 : day - 1;
+            cutoffDate = new Date(now);
+            cutoffDate.setDate(now.getDate() - diff);
+            cutoffDate.setHours(0, 0, 0, 0);
+            break;
         }
 
         if (cutoffDate) {
@@ -104,7 +104,6 @@ export const useTradeFilters = (trades: Trade[]) => {
       }
     }
 
-    // Apply search query
     if (searchQuery.trim() !== '') {
       const query = searchQuery.toLowerCase().trim();
       result = result.filter(trade => 
