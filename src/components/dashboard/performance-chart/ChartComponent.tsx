@@ -25,15 +25,13 @@ export const ChartComponent = ({ data }: ChartComponentProps) => {
   let yMin = minDailyValue - (dailyRange * 0.1); // Add 10% padding
   let yMax = maxDailyValue + (dailyRange * 0.1); // Add 10% padding
   
-  // If all values are positive, include zero
-  if (minDailyValue > 0) {
-    yMin = 0;
-  }
+  // Always ensure 0 is included in the range for daily P/L
+  yMin = Math.min(yMin, 0);
+  yMax = Math.max(yMax, 0);
   
-  // If all values are negative, include zero
-  if (maxDailyValue < 0) {
-    yMax = 0;
-  }
+  // For accumulated P/L, always ensure 0 is included
+  const accMin = Math.min(minAccumulated * 1.1, 0);
+  const accMax = Math.max(maxAccumulated * 1.1, 0);
   
   // Prepare chart data
   const chartData = {
@@ -110,6 +108,13 @@ export const ChartComponent = ({ data }: ChartComponentProps) => {
               colors: 'hsl(var(--foreground))'
             },
             formatter: (val: number) => val.toFixed(0)
+          },
+          // Add a horizontal line at y=0
+          axisTicks: {
+            show: true,
+          },
+          crosshairs: {
+            show: true,
           }
         },
         {
@@ -123,19 +128,33 @@ export const ChartComponent = ({ data }: ChartComponentProps) => {
             }
           },
           // Scale accumulated axis based on actual accumulated data
-          min: Math.min(minAccumulated * 1.1, 0), // Include 0 if all values are positive
-          max: Math.max(maxAccumulated * 1.1, 0), // Include 0 if all values are negative
+          // Always including 0 in the range
+          min: accMin,
+          max: accMax,
           labels: {
             style: {
               colors: '#0EA5E9'
             },
             formatter: (val: number) => val.toFixed(0)
+          },
+          // Add a horizontal line at y=0
+          axisTicks: {
+            show: true,
+          },
+          crosshairs: {
+            show: true,
           }
         }
       ],
       grid: {
         borderColor: 'hsl(var(--chart-grid))',
-        strokeDashArray: 4
+        strokeDashArray: 4,
+        // Add a horizontal line at y=0
+        yaxis: {
+          lines: {
+            show: true
+          }
+        }
       },
       tooltip: {
         shared: true,
