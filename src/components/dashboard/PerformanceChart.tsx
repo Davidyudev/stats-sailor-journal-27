@@ -35,7 +35,7 @@ export const PerformanceChart = ({
 
   return (
     <MountTransition delay={100} className={cn("glass-card rounded-lg", className)}>
-      <div className="p-4">
+      <div className="p-4 h-full flex flex-col">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2">
           <h3 className="text-lg font-medium">Performance</h3>
           <div className="flex items-center gap-3">
@@ -52,7 +52,9 @@ export const PerformanceChart = ({
           </div>
         </div>
         
-        <ChartComponent data={chartData} />
+        <div className="flex-1 min-h-[250px]">
+          <ChartComponent data={chartData} />
+        </div>
       </div>
     </MountTransition>
   );
