@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Trade } from '@/lib/types';
 import { 
@@ -86,17 +85,14 @@ export const TradeEditDialog = ({
     if (!trade || !formData) return;
     
     try {
-      // Calculate updated pips and profit/loss based on price changes
+      // Calculate pips based on price changes but keep profitLoss as manually entered
       let pips = 0;
-      let profitLoss = 0;
       
       if (formData.type === 'buy') {
         pips = ((formData.closePrice || 0) - (formData.openPrice || 0)) * 10000;
       } else {
         pips = ((formData.openPrice || 0) - (formData.closePrice || 0)) * 10000;
       }
-      
-      profitLoss = pips * (formData.lots || 1) / 10;
       
       // Convert string dates back to Date objects for the updated trade
       const updatedTrade: Trade = {
@@ -105,7 +101,8 @@ export const TradeEditDialog = ({
         openDate: formData.openDate ? new Date(formData.openDate) : trade.openDate,
         closeDate: formData.closeDate ? new Date(formData.closeDate) : trade.closeDate,
         pips,
-        profitLoss,
+        // Use the manually entered profitLoss if provided, otherwise keep the existing value
+        profitLoss: formData.profitLoss !== undefined ? formData.profitLoss : trade.profitLoss,
       } as Trade;
       
       onSave(updatedTrade);
@@ -255,6 +252,45 @@ export const TradeEditDialog = ({
                 onChange={handleChange}
               />
             </div>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="profitLoss">Profit/Loss</Label>
+              <Input 
+                id="profitLoss" 
+                name="profitLoss" 
+                type="number" 
+                step="0.01" 
+                value={formData.profitLoss || 0} 
+                onChange={handleChange}
+                required
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="commission">Commission</Label>
+              <Input 
+                id="commission" 
+                name="commission" 
+                type="number" 
+                step="0.01" 
+                value={formData.commission || 0} 
+                onChange={handleChange}
+              />
+            </div>
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="swap">Swap</Label>
+            <Input 
+              id="swap" 
+              name="swap" 
+              type="number" 
+              step="0.01" 
+              value={formData.swap || 0} 
+              onChange={handleChange}
+            />
           </div>
           
           <div className="space-y-2">
