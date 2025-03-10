@@ -4,6 +4,7 @@ import { MountTransition } from '@/components/ui/mt4-connector';
 import { cn } from '@/lib/utils';
 import { Symbol } from '@/lib/types';
 import { AssetChartRenderer } from './AssetChartRenderer';
+import { AssetDescriptionsList } from './AssetDescriptionsList';
 
 interface AssetPerformanceChartProps {
   data: Symbol[];
@@ -31,6 +32,10 @@ export const AssetPerformanceChart = ({ data, className }: AssetPerformanceChart
         
         <div className="h-64 w-full">
           <AssetChartRenderer data={sortedData} />
+        </div>
+        
+        <div className="mt-4">
+          <AssetDescriptionsList assets={sortedData} />
         </div>
       </div>
     </MountTransition>
