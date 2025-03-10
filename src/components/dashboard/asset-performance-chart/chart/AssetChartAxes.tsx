@@ -13,10 +13,10 @@ export const createAxes = (
     .attr("transform", `translate(0,${y(0)})`)
     .call(d3.axisBottom(x))
     .selectAll("text")
-    .style("text-anchor", "middle")
-    .attr("dx", "0")
-    .attr("dy", "1em")
-    .attr("transform", "rotate(0)")  // No rotation for better readability
+    .style("text-anchor", "end")
+    .attr("dx", "-.8em")
+    .attr("dy", ".15em")
+    .attr("transform", "rotate(-45)")
     .style("fill", "hsl(var(--foreground))")
     .style("font-size", "12px");
   
