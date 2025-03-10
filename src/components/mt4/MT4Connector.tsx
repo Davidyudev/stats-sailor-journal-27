@@ -56,6 +56,7 @@ export const MT4Connector: React.FC<MT4ConnectorProps> = ({
 
   const { 
     watchConfig, 
+    setWatchConfig, // Make sure this is included in the destructuring
     handleWatchConfigChange,
     startWatchingFolder,
     stopWatchingFolder

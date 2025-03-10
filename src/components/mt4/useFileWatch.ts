@@ -156,6 +156,7 @@ export const useFileWatch = (
 
   return {
     watchConfig,
+    setWatchConfig, // Export the setWatchConfig function
     handleWatchConfigChange,
     startWatchingFolder,
     stopWatchingFolder,
