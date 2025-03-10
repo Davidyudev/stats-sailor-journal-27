@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Loader2, FolderOpen } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -46,6 +45,10 @@ interface MT4ConnectorProps {
   onError?: (error: Error) => void;
 }
 
+const isElectron = (): boolean => {
+  return window.electronAPI !== undefined;
+};
+
 export const MT4Connector: React.FC<MT4ConnectorProps> = ({ 
   onConnect, 
   onDisconnect,
@@ -63,9 +66,11 @@ export const MT4Connector: React.FC<MT4ConnectorProps> = ({
     interval: 5, // minutes
     lastCheck: null as Date | null,
     folderPath: '' as string,
+    filePattern: '*.csv' as string,
   });
   const watchTimerRef = useRef<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isElectronAvailable] = useState<boolean>(isElectron());
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -82,33 +87,119 @@ export const MT4Connector: React.FC<MT4ConnectorProps> = ({
     }));
   };
 
-  const startWatchingFolder = () => {
+  const startWatchingFolder = async () => {
     if (!watchConfig.enabled || !watchConfig.folderPath) return;
     
-    // Clear any existing timer
-    if (watchTimerRef.current) {
-      window.clearInterval(watchTimerRef.current);
+    if (isElectronAvailable) {
+      try {
+        const result = await window.electronAPI.startWatchingFolder(
+          watchConfig.folderPath, 
+          watchConfig.filePattern
+        );
+        
+        if (result.success) {
+          toast({
+            title: "Folder Watch Started",
+            description: `Watching ${watchConfig.folderPath} for ${watchConfig.filePattern} files.`,
+          });
+          
+          // Set up file found callback
+          window.electronAPI.onFileFound((data) => {
+            handleFileFound(data.path);
+          });
+          
+          window.electronAPI.onFileChanged((data) => {
+            handleFileFound(data.path);
+          });
+        } else {
+          toast({
+            title: "Error Starting File Watch",
+            description: result.error || "Could not watch the selected folder.",
+            variant: "destructive",
+          });
+        }
+      } catch (error) {
+        console.error("Error starting folder watch:", error);
+        toast({
+          title: "Error",
+          description: "Failed to start folder watch.",
+          variant: "destructive",
+        });
+      }
+    } else {
+      // Fallback to timer-based checking for web
+      if (watchTimerRef.current) {
+        window.clearInterval(watchTimerRef.current);
+      }
+      
+      // Set up a new timer
+      watchTimerRef.current = window.setInterval(() => {
+        checkFolderForUpdates();
+      }, watchConfig.interval * 60 * 1000); // Convert minutes to milliseconds
+      
+      toast({
+        title: "Folder Watch Started",
+        description: `Watching ${watchConfig.folderPath} every ${watchConfig.interval} minutes.`,
+      });
     }
     
-    // Set up a new timer
-    watchTimerRef.current = window.setInterval(() => {
-      checkFolderForUpdates();
-    }, watchConfig.interval * 60 * 1000); // Convert minutes to milliseconds
-    
-    toast({
-      title: "Folder Watch Started",
-      description: `Watching ${watchConfig.folderPath} every ${watchConfig.interval} minutes.`,
-    });
+    setWatchConfig(prev => ({
+      ...prev,
+      lastCheck: new Date()
+    }));
   };
 
-  const stopWatchingFolder = () => {
-    if (watchTimerRef.current) {
+  const stopWatchingFolder = async () => {
+    if (isElectronAvailable) {
+      try {
+        await window.electronAPI.stopWatchingFolder();
+        window.electronAPI.removeAllListeners('file-found');
+        window.electronAPI.removeAllListeners('file-changed');
+        
+        toast({
+          title: "Folder Watch Stopped",
+          description: "No longer watching folder for updates.",
+        });
+      } catch (error) {
+        console.error("Error stopping folder watch:", error);
+      }
+    } else if (watchTimerRef.current) {
       window.clearInterval(watchTimerRef.current);
       watchTimerRef.current = null;
       
       toast({
         title: "Folder Watch Stopped",
         description: "No longer watching folder for updates.",
+      });
+    }
+  };
+
+  const handleFileFound = async (filePath: string) => {
+    try {
+      if (isElectronAvailable) {
+        const result = await window.electronAPI.readFile(filePath);
+        if (result.success) {
+          toast({
+            title: "New Trading Data Found",
+            description: `Importing data from ${filePath.split(/[\\/]/).pop()}`,
+          });
+          
+          // Here you would actually parse the file content
+          console.log(`File content length: ${result.content.length} bytes`);
+          
+          // If currently not connected, set to connected
+          if (status !== 'connected') {
+            setStatus('connected');
+            onConnect?.();
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error processing file:", error);
+      toast({
+        title: "Error Processing File",
+        description: "Could not process the trading data file.",
+        variant: "destructive",
       });
     }
   };
@@ -120,16 +211,17 @@ export const MT4Connector: React.FC<MT4ConnectorProps> = ({
         lastCheck: new Date()
       }));
       
-      // For now this is a simulated check - in a real implementation,
-      // we'd use the File System Access API to check the folder contents
-      console.log(`Checking folder ${watchConfig.folderPath} for updates...`);
-      
-      // Simulate finding new files occasionally
-      if (Math.random() > 0.7) {
-        toast({
-          title: "New Trading Data Found",
-          description: "Importing new trading data from MT4 export.",
-        });
+      // For web version, this is just a simulated check
+      if (!isElectronAvailable) {
+        console.log(`Checking folder ${watchConfig.folderPath} for updates...`);
+        
+        // Simulate finding new files occasionally
+        if (Math.random() > 0.7) {
+          toast({
+            title: "New Trading Data Found",
+            description: "Importing new trading data from MT4 export.",
+          });
+        }
       }
     } catch (error) {
       console.error("Error checking folder for updates:", error);
@@ -141,82 +233,120 @@ export const MT4Connector: React.FC<MT4ConnectorProps> = ({
     }
   };
 
-  // Select folder using the File System Access API
+  // Select folder using the File System Access API for web or Electron dialog for desktop
   const handleSelectFolder = async () => {
     try {
-      // @ts-ignore - FileSystemDirectoryHandle is not in the TypeScript DOM types yet
-      const directoryHandle = await window.showDirectoryPicker({
-        mode: 'read'
-      });
+      let folderPath = '';
+      let folderName = '';
       
-      setWatchConfig(prev => ({
-        ...prev,
-        folderPath: directoryHandle.name
-      }));
-      
-      toast({
-        title: "Folder Selected",
-        description: `Selected folder: ${directoryHandle.name}`,
-      });
+      if (isElectronAvailable) {
+        const result = await window.electronAPI.selectFolder();
+        if (!result.canceled) {
+          folderPath = result.filePath;
+          folderName = folderPath.split(/[\\/]/).pop() || '';
+          
+          setWatchConfig(prev => ({
+            ...prev,
+            folderPath
+          }));
+          
+          toast({
+            title: "Folder Selected",
+            description: `Selected folder: ${folderName}`,
+          });
+        }
+      } else {
+        // Fallback for web - using FileSystem Access API if available
+        try {
+          // @ts-ignore - FileSystemDirectoryHandle is not in the TypeScript DOM types yet
+          const directoryHandle = await window.showDirectoryPicker({
+            mode: 'read'
+          });
+          
+          folderName = directoryHandle.name;
+          folderPath = folderName; // Just use the name as a placeholder in web version
+          
+          setWatchConfig(prev => ({
+            ...prev,
+            folderPath
+          }));
+          
+          toast({
+            title: "Folder Selected",
+            description: `Selected folder: ${folderName}`,
+          });
+        } catch (error) {
+          console.error("Error selecting folder:", error);
+          // User probably canceled the dialog
+          if ((error as Error).name !== 'AbortError') {
+            toast({
+              title: "Error Selecting Folder",
+              description: "Could not select folder. Please try again.",
+              variant: "destructive",
+            });
+          }
+        }
+      }
     } catch (error) {
       console.error("Error selecting folder:", error);
-      // User probably canceled the dialog
-      if ((error as Error).name !== 'AbortError') {
-        toast({
-          title: "Error Selecting Folder",
-          description: "Could not select folder. Please try again.",
-          variant: "destructive",
-        });
-      }
+      toast({
+        title: "Error",
+        description: "Failed to select folder.",
+        variant: "destructive",
+      });
     }
   };
 
   // For importing a specific MT4 export file
-  const handleFileImport = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files || files.length === 0) return;
     
     const file = files[0];
-    const reader = new FileReader();
     
-    reader.onload = (e) => {
-      try {
-        // Here we would actually parse the MT4 export file
-        // For now, we'll just show a success message
-        toast({
-          title: "File Imported",
-          description: `Successfully imported trading data from ${file.name}`,
-        });
-        
-        if (status !== 'connected') {
-          setStatus('connected');
-          onConnect?.();
+    try {
+      let fileContent: string;
+      
+      if (isElectronAvailable && event.target.files) {
+        const result = await window.electronAPI.readFile(file.path);
+        if (result.success) {
+          fileContent = result.content;
+        } else {
+          throw new Error(result.error || "Failed to read file");
         }
-      } catch (error) {
-        console.error("Error parsing file:", error);
-        toast({
-          title: "Import Error",
-          description: "Could not parse the MT4 export file.",
-          variant: "destructive",
+      } else {
+        // Web fallback
+        const reader = new FileReader();
+        fileContent = await new Promise<string>((resolve, reject) => {
+          reader.onload = (e) => resolve(e.target?.result as string);
+          reader.onerror = () => reject(new Error("Could not read file"));
+          reader.readAsText(file);
         });
-        
-        setStatus('error');
-        onError?.(new Error('Invalid file format'));
       }
-    };
-    
-    reader.onerror = () => {
+      
+      // Here we would actually parse the MT4 export file
+      console.log(`Successfully read ${file.name} (${fileContent.length} bytes)`);
+      
       toast({
-        title: "File Read Error",
-        description: "Could not read the file.",
+        title: "File Imported",
+        description: `Successfully imported trading data from ${file.name}`,
+      });
+      
+      if (status !== 'connected') {
+        setStatus('connected');
+        onConnect?.();
+      }
+    } catch (error) {
+      console.error("Error parsing file:", error);
+      toast({
+        title: "Import Error",
+        description: "Could not parse the MT4 export file.",
         variant: "destructive",
       });
       
       setStatus('error');
-      onError?.(new Error('Could not read file'));
-    };
-    
-    reader.readAsText(file);
+      onError?.(new Error('Invalid file format'));
+    }
   };
 
   const handleConnect = () => {
@@ -251,8 +381,13 @@ export const MT4Connector: React.FC<MT4ConnectorProps> = ({
       if (watchTimerRef.current) {
         window.clearInterval(watchTimerRef.current);
       }
+      
+      if (isElectronAvailable) {
+        window.electronAPI.removeAllListeners('file-found');
+        window.electronAPI.removeAllListeners('file-changed');
+      }
     };
-  }, []);
+  }, [isElectronAvailable]);
 
   // Start or stop watching when config changes
   useEffect(() => {
@@ -331,6 +466,19 @@ export const MT4Connector: React.FC<MT4ConnectorProps> = ({
                         {watchConfig.folderPath ? watchConfig.folderPath : 'No folder selected'}
                       </p>
                     </div>
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm" htmlFor="file-pattern">
+                      File Pattern
+                    </label>
+                    <input
+                      id="file-pattern"
+                      value={watchConfig.filePattern}
+                      onChange={(e) => handleWatchConfigChange('filePattern', e.target.value)}
+                      className="h-8 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 w-24"
+                      placeholder="*.csv"
+                    />
                   </div>
                   
                   <div className="flex items-center justify-between">
@@ -458,6 +606,10 @@ export const MT4Connector: React.FC<MT4ConnectorProps> = ({
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Folder:</span>
                     <span className="font-medium truncate max-w-[180px]">{watchConfig.folderPath}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Pattern:</span>
+                    <span className="font-medium">{watchConfig.filePattern}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Check Interval:</span>

@@ -1,0 +1,31 @@
+
+{
+  "appId": "com.stats-sailor-journal.app",
+  "productName": "Stats Sailor Journal",
+  "copyright": "Copyright © 2023",
+  "directories": {
+    "output": "release/"
+  },
+  "files": [
+    "dist/**/*",
+    "electron/**/*"
+  ],
+  "win": {
+    "target": ["nsis"],
+    "icon": "public/favicon.ico"
+  },
+  "nsis": {
+    "oneClick": false,
+    "allowToChangeInstallationDirectory": true,
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true
+  },
+  "mac": {
+    "target": ["dmg"],
+    "category": "public.app-category.finance"
+  },
+  "linux": {
+    "target": ["AppImage"],
+    "category": "Finance"
+  }
+}
