@@ -29,8 +29,22 @@ export const AssetPerformanceChart = ({ data, className }: AssetPerformanceChart
           <h3 className="text-lg font-medium">Asset Performance</h3>
         </div>
         
-        <div className="h-64 w-full">
+        <div className="h-64 w-full mb-4">
           <AssetChartRenderer data={sortedData} />
+        </div>
+        
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 text-sm">
+          {sortedData.map((asset) => (
+            <div key={asset.name} className="flex items-center p-1 rounded">
+              <div 
+                className="w-3 h-3 rounded-full mr-2" 
+                style={{ 
+                  backgroundColor: asset.pnl >= 0 ? 'var(--chart-green)' : 'var(--chart-red)'
+                }}
+              />
+              <span className="font-medium">{asset.name}</span>
+            </div>
+          ))}
         </div>
       </div>
     </MountTransition>
