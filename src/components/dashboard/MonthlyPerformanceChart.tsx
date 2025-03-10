@@ -84,10 +84,11 @@ export const MonthlyPerformanceChart = ({ data, className }: MonthlyPerformanceC
     
     // Add X axis
     svg.append("g")
-      .attr("transform", `translate(0,${y(0)})`)
+      .attr("transform", `translate(0,${height})`)
       .call(d3.axisBottom(x))
       .selectAll("text")
       .style("text-anchor", "middle")
+      .attr("dy", "1em")
       .style("fill", "hsl(var(--foreground))")
       .style("font-size", "12px");
     

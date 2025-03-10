@@ -1,4 +1,3 @@
-
 import { useRef, useEffect, useMemo } from 'react';
 import { MountTransition } from '@/components/ui/mt4-connector';
 import { cn } from '@/lib/utils';
@@ -63,16 +62,17 @@ export const DurationPerformanceChart = ({ trades, className }: DurationPerforma
     
     // Add X axis
     svg.append("g")
-      .attr("transform", `translate(0,${y(0)})`)
+      .attr("transform", `translate(0,${height})`)
       .call(d3.axisBottom(x))
       .selectAll("text")
+      .style("text-anchor", "middle")
       .style("fill", "hsl(var(--foreground))")
       .style("font-size", "12px");
     
     // Add X axis label
     svg.append("text")
       .attr("x", width / 2)
-      .attr("y", height + 40)
+      .attr("y", height + 35)
       .attr("text-anchor", "middle")
       .style("fill", "hsl(var(--foreground))")
       .text("Duration (hours)");

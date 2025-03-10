@@ -10,13 +10,11 @@ export const createAxes = (
 ) => {
   // Add X axis
   svg.append("g")
-    .attr("transform", `translate(0,${y(0)})`)
+    .attr("transform", `translate(0,${height})`)
     .call(d3.axisBottom(x))
     .selectAll("text")
-    .style("text-anchor", "end")
-    .attr("dx", "-.8em")
-    .attr("dy", ".15em")
-    .attr("transform", "rotate(-45)")
+    .style("text-anchor", "middle")
+    .attr("dy", "1em")
     .style("fill", "hsl(var(--foreground))")
     .style("font-size", "12px");
   
