@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Loader2, FolderOpen } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -307,8 +308,16 @@ export const MT4Connector: React.FC<MT4ConnectorProps> = ({
     try {
       let fileContent: string;
       
-      if (isElectronAvailable && event.target.files) {
-        const result = await window.electronAPI.readFile(file.path);
+      if (isElectronAvailable) {
+        // In Electron, we need to use the electron API to read the file
+        // The path property is only available in Electron's file object
+        // @ts-ignore - path exists in Electron but not in standard web File
+        const filePath = file.path;
+        if (!filePath) {
+          throw new Error("Could not get file path");
+        }
+        
+        const result = await window.electronAPI.readFile(filePath);
         if (result.success) {
           fileContent = result.content;
         } else {
