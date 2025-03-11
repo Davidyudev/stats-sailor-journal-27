@@ -3,7 +3,7 @@ import { useToast } from '@/hooks/use-toast';
 import { isElectron, WatchConfig } from './utils';
 
 export const useFolderSelection = (
-  setWatchConfig: (updater: (prev: WatchConfig) => WatchConfig) => void
+  setWatchConfig: React.Dispatch<React.SetStateAction<WatchConfig>>
 ) => {
   const { toast } = useToast();
   const isElectronAvailable = isElectron();
