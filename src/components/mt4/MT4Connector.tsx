@@ -56,13 +56,12 @@ export const MT4Connector: React.FC<MT4ConnectorProps> = ({
 
   const { 
     watchConfig, 
-    setWatchConfig,
+    setWatchConfig, // Make sure this is included in the destructuring
     handleWatchConfigChange,
     startWatchingFolder,
     stopWatchingFolder
   } = useFileWatch(handleFileFound);
 
-  // The useFolderSelection hook now correctly accepts the setWatchConfig function
   const { handleSelectFolder } = useFolderSelection(setWatchConfig);
 
   const handleConnect = () => {
