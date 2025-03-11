@@ -1,7 +1,6 @@
 
 import { useToast } from '@/hooks/use-toast';
-import { isElectron } from './utils';
-import { WatchConfig } from './utils';
+import { isElectron, WatchConfig } from './utils';
 
 export const useFolderSelection = (
   setWatchConfig: (updater: (prev: WatchConfig) => WatchConfig) => void
