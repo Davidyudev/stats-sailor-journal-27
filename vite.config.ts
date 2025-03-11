@@ -22,4 +22,10 @@ export default defineConfig(({ mode }) => ({
   },
   // Disable open browser automatically
   base: "./",
+  build: {
+    outDir: "dist",
+    emptyOutDir: true,
+    assetsDir: "assets",
+    sourcemap: process.env.NODE_ENV !== "production",
+  },
 }));

@@ -17,7 +17,8 @@ if (!fs.existsSync('electron')) {
 // Build steps
 console.log('Building the React application...');
 try {
-  execSync('npm run build', { stdio: 'inherit' });
+  // Use npx to ensure vite is found correctly
+  execSync('npx vite build', { stdio: 'inherit' });
 } catch (error) {
   console.error('Failed to build the React application:', error);
   process.exit(1);
