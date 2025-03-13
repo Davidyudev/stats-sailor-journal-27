@@ -13,12 +13,16 @@ console.log('Checking electron build dependencies...');
 // Check for vite
 const vitePath = path.join(__dirname, 'node_modules/vite/bin/vite.js');
 if (!fs.existsSync(vitePath)) {
-  console.log('Vite not found in node_modules. Checking if it can be accessed globally...');
+  console.log('Vite not found in node_modules. Checking if it can be accessed via npm scripts...');
   try {
-    execSync('vite --version', { stdio: 'pipe' });
-    console.log('Vite is available globally.');
+    const packageJson = JSON.parse(fs.readFileSync('./package.json', 'utf8'));
+    if (!packageJson.scripts.build) {
+      console.error('No build script found in package.json. Please add a build script.');
+      process.exit(1);
+    }
+    console.log('Build script found in package.json:', packageJson.scripts.build);
   } catch (error) {
-    console.error('Vite is not installed or not in PATH. Please install it with npm install vite.');
+    console.error('Error checking build script:', error);
     process.exit(1);
   }
 } else {
@@ -38,6 +42,21 @@ if (!fs.existsSync(electronBuilderPath)) {
   }
 } else {
   console.log('electron-builder found at:', electronBuilderPath);
+}
+
+// Check for electron
+const electronPath = path.join(__dirname, 'node_modules/electron');
+if (!fs.existsSync(electronPath)) {
+  console.log('electron not found in node_modules. Checking if it can be accessed via npx...');
+  try {
+    execSync('npx electron --version', { stdio: 'pipe' });
+    console.log('electron is available via npx.');
+  } catch (error) {
+    console.error('electron is not installed. Please install it with npm install electron.');
+    process.exit(1);
+  }
+} else {
+  console.log('electron found at:', electronPath);
 }
 
 console.log('All dependencies are available for electron build.');
